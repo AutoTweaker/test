@@ -95,7 +95,6 @@ class AgentBridgeTest {
 			// AgentChat 由 AgentImpl 用 deps.resilientChat 自建，消息保存进 MessageCache 以便经 getMessage 读回
 			messageCacheImpl = TestServices.messageCache,
 			resilientChat = chat,
-			summaryService = SummaryService(chat),
 			messageConverts = MessageConverts(
 				fileSystem = mockk<RawFileSystem>(relaxed = true) {
 					coEvery { read(any()) } returns FileContent("", false, Sha256(ByteArray(32)))
