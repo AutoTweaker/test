@@ -12,7 +12,7 @@
 - 测试报告在 `build/test-results/test/*.xml` 与 `build/reports/tests/test/`
 - 跑测试必须带产物参数：
 
-  ```
+  ```bash
   ./gradlew test -Pautotweaker.runtime="$PWD/.core/core/build/runtime:$PWD/.core/cli-adapter/build/runtime"
   ```
 
@@ -33,6 +33,7 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 
 ## 修测试的约束
 
+- 不要访问，更不要写入或更新 `.github/` 目录以及其中的任何文件
 - 优先做最小适配：更新期望值、适配新的 API 形态、调整构造参数
 - core 移除了对应的类、方法或功能时，删除测它的测试（测试方法或整个文件）是正确做法。删之前先在 `.core/` 里确认那东西确实不存在了，并在 commit message 里写明
 - 禁止加 `@Disabled`、把断言弱化成恒真、用 try-catch 吞掉异常——这些让测试"变绿"，不是让它"变对"。功能没了就删测试，功能还在就不该禁用
@@ -44,7 +45,7 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 
 2. **issue 操作**：只有判定出"core 的 bug 导致测试失败"时才做，可以与其他测试的修改同时进行。先查重：
 
-   ```
+   ```bash
    gh issue list --repo AutoTweaker/core --state open --search "<关键词>"
    ```
 
