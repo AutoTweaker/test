@@ -140,7 +140,7 @@ jobs:
             exit 0
           fi
           if [ ! -f "$json" ] || [ ! -f "$md" ]; then
-            echo "issue 契约不完整，.autotweaker/ 下只有：$(ls .autotweaker/)" >&2
+            echo "issue 文件不完整，.autotweaker/ 下只有：$(ls .autotweaker/)" >&2
             exit 1
           fi
           {
