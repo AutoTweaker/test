@@ -33,7 +33,7 @@ jobs:
           if [ -f "$state" ]; then
             last=$(cat "$state")
           fi
-          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ] && [ "$last" = "$sha" ]; then
+          if [ "$last" = "$sha" ]; then
             echo "core 未变化（${sha:0:7}），跳过本次测试"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
