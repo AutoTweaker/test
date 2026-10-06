@@ -53,17 +53,23 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Build core
+        id: build
+        continue-on-error: true
         run: |
           cd .core
           ./gradlew build
 
       - name: Export core runtime
+        id: export
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
         run: |
           cd .core
           ./gradlew :autotweaker-core:exportRuntime :cli-adapter:exportRuntime
 
       - name: Run tests
         id: test
+        if: steps.export.outcome == 'success'
         continue-on-error: true
         run: |
           ./gradlew test -Pautotweaker.runtime="$PWD/.core/core/build/runtime:$PWD/.core/cli-adapter/build/runtime"
@@ -79,6 +85,11 @@ jobs:
             if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.fill }}" = "true" ]; then
               mode=fill
             fi
+          fi
+          if [ "${{ steps.build.outcome }}" = "failure" ]; then
+            echo "::warning::core 构建失败，本轮跳过"
+          elif [ "${{ steps.export.outcome }}" = "failure" ]; then
+            echo "::warning::core 产物导出失败，本轮跳过"
           fi
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "本轮 mode=$mode"
