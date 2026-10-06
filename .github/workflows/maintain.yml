@@ -109,7 +109,7 @@ jobs:
         if: steps.test.outcome == 'failure'
         uses: AutoTweaker/action@v1
         env:
-          GH_TOKEN: ${{ secrets.CORE_READ_TOKEN }}
+          GH_TOKEN: ${{ secrets.READ_ONLY_TOKEN }}
         with:
           prompt: ${{ steps.prompt.outputs.text }}
           api-key: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -130,7 +130,7 @@ jobs:
       - name: Apply issue action
         if: steps.test.outcome == 'failure'
         env:
-          GH_TOKEN: ${{ secrets.CORE_WRITE_TOKEN }}
+          GH_TOKEN: ${{ secrets.ISSUE_TOKEN }}
         run: |
           json=.autotweaker/issue.json
           md=.autotweaker/issue.md
