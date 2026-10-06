@@ -1,8 +1,8 @@
 name: Maintain
 
 on:
-  schedule:
-    - cron: '23 3 * * *'
+  repository_dispatch:
+    types: [ core-push ]
   workflow_dispatch:
 
 permissions:
