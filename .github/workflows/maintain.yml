@@ -1,0 +1,187 @@
+name: Maintain
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: maintain
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Restore last tested core
+        uses: actions/cache/restore@v6
+        with:
+          path: .autotweaker/last-core-sha
+          key: core-${{ github.run_id }}
+          restore-keys: core-
+
+      - name: Check core HEAD
+        id: check
+        run: |
+          sha=$(git ls-remote https://github.com/AutoTweaker/core refs/heads/main | cut -f1)
+          last=""
+          if [ -f .autotweaker/last-core-sha ]; then
+            last=$(cat .autotweaker/last-core-sha)
+          fi
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ] && [ "$last" = "$sha" ]; then
+            echo "core 未变化（${sha:0:7}），跳过本次测试"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p .autotweaker
+          echo "$sha" > .autotweaker/last-core-sha
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout test
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout core
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: AutoTweaker/core
+          path: .core
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Java
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Setup Gradle
+        if: steps.check.outputs.skip != 'true'
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Configure git
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.editor true
+
+      - name: Build core
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd .core
+          ./gradlew build
+
+      - name: Export core runtime
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd .core
+          ./gradlew :autotweaker-core:exportRuntime :cli-adapter:exportRuntime
+
+      - name: Run tests
+        id: test
+        if: steps.check.outputs.skip != 'true'
+        continue-on-error: true
+        run: |
+          ./gradlew test -Pautotweaker.runtime="$PWD/.core/core/build/runtime:$PWD/.core/cli-adapter/build/runtime"
+
+      - name: Load prompt
+        id: prompt
+        if: steps.test.outcome == 'failure'
+        run: |
+          {
+            echo 'text<<PROMPT_EOF'
+            cat .github/workflows/maintain.prompt.md
+            echo 'PROMPT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run agent
+        id: agent
+        if: steps.test.outcome == 'failure'
+        uses: AutoTweaker/action@v1
+        env:
+          GH_TOKEN: ${{ secrets.CORE_READ_TOKEN }}
+        with:
+          prompt: ${{ steps.prompt.outputs.text }}
+          api-key: ${{ secrets.DEEPSEEK_API_KEY }}
+          provider-type: deepseek
+          model-id: deepseek-flash
+
+      - name: Push commits
+        if: steps.test.outcome == 'failure'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$(git log origin/main..HEAD --oneline)" ]; then
+            echo "工作区没有新提交，跳过推送"
+            exit 0
+          fi
+          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+
+      - name: Apply issue action
+        if: steps.test.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.CORE_WRITE_TOKEN }}
+        run: |
+          json=.autotweaker/issue.json
+          md=.autotweaker/issue.md
+          if [ ! -f "$json" ] && [ ! -f "$md" ]; then
+            echo "没有 issue 操作"
+            exit 0
+          fi
+          if [ ! -f "$json" ] || [ ! -f "$md" ]; then
+            echo "issue 契约不完整，.autotweaker/ 下只有：$(ls .autotweaker/)" >&2
+            exit 1
+          fi
+          {
+            cat "$md"
+            echo
+            echo "---"
+            echo
+            echo "> 以上内容为 AutoTweaker/test 维护工作流生成，参见 [工作流运行记录](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})。"
+          } > .autotweaker/body.md
+          action=$(jq -r '.action' "$json")
+          case "$action" in
+            create)
+              gh issue create --repo AutoTweaker/core \
+                --title "$(jq -r '.title' "$json")" \
+                --body-file .autotweaker/body.md \
+                --type Bug
+              ;;
+            comment)
+              gh issue comment "$(jq -r '.issue' "$json")" \
+                --repo AutoTweaker/core \
+                --body-file .autotweaker/body.md
+              ;;
+            *)
+              echo "未知的 action: $action" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Save tested core
+        if: success() && steps.check.outputs.skip != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: .autotweaker/last-core-sha
+          key: core-${{ github.run_id }}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/
+            build/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
