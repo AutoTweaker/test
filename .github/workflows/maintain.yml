@@ -148,9 +148,7 @@ jobs:
           fi
           {
             cat "$md"
-            echo
-            echo "---"
-            echo
+            printf '\n\n---\n\n'
             echo "> 以上内容由 AutoTweaker Agent 生成，参见 [运行记录](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})。"
           } > .autotweaker/body.md
           action=$(jq -r '.action' "$json")
