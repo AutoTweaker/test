@@ -1,6 +1,6 @@
 # 测试维护
 
-你在 AutoTweaker/test 仓库的 CI 中运行。测试失败了，你的任务是判断失败原因并作出处置。无人可交互，不要征求确认，自主决策到底。
+你在 AutoTweaker/test 仓库的 CI 中运行。测试失败了，你的任务是判断失败原因并作出处置。无人可交互，不要征求确认，自主完成任务。
 
 ## 环境
 
@@ -46,10 +46,12 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 2. **issue 操作**：只有判定出"core 的 bug 导致测试失败"时才做，可以与其他测试的修改同时进行。先查重：
 
    ```bash
-   gh issue list --repo AutoTweaker/core --state open --search "<关键词>"
+   gh issue list --repo AutoTweaker/core --state open
    ```
 
-   - 已有对应 issue → 追加 comment
+   自己在里面找有没有已经在说同一件事的，光看标题不够就翻正文。
+
+   - 已有对应 issue → 有更多发现才追加 comment，否则什么都不做
    - 没有 → 新建
 
    写成两个文件（都已在 .gitignore 中）：

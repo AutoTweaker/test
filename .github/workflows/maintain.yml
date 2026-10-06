@@ -1,9 +1,16 @@
 name: Maintain
 
 on:
+  schedule:
+    - cron: '17 3 * * 1'
   repository_dispatch:
     types: [ core-push ]
   workflow_dispatch:
+    inputs:
+      fill:
+        description: '测试全绿时也执行填充'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -61,23 +68,42 @@ jobs:
         run: |
           ./gradlew test -Pautotweaker.runtime="$PWD/.core/core/build/runtime:$PWD/.core/cli-adapter/build/runtime"
 
+      - name: Decide mode
+        id: mode
+        if: always()
+        run: |
+          mode=none
+          if [ "${{ steps.test.outcome }}" = "failure" ]; then
+            mode=maintain
+          elif [ "${{ steps.test.outcome }}" = "success" ]; then
+            if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.fill }}" = "true" ]; then
+              mode=fill
+            fi
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
       - name: Prepare workspace
-        if: steps.test.outcome == 'failure'
+        if: steps.mode.outputs.mode != 'none'
         run: mkdir -p .autotweaker
 
       - name: Load prompt
         id: prompt
-        if: steps.test.outcome == 'failure'
+        if: steps.mode.outputs.mode != 'none'
         run: |
+          if [ "${{ steps.mode.outputs.mode }}" = "maintain" ]; then
+            file=.github/workflows/maintain.prompt.md
+          else
+            file=.github/workflows/fill.prompt.md
+          fi
           {
             echo 'text<<PROMPT_EOF'
-            cat .github/workflows/maintain.prompt.md
+            cat "$file"
             echo 'PROMPT_EOF'
           } >> "$GITHUB_OUTPUT"
 
       - name: Run agent
         id: agent
-        if: steps.test.outcome == 'failure'
+        if: steps.mode.outputs.mode != 'none'
         uses: AutoTweaker/action@v1
         env:
           GH_TOKEN: ${{ secrets.READ_ONLY_TOKEN }}
@@ -88,7 +114,7 @@ jobs:
           model-id: deepseek-flash
 
       - name: Push commits
-        if: steps.test.outcome == 'failure'
+        if: steps.mode.outputs.mode != 'none'
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -99,7 +125,7 @@ jobs:
           git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
 
       - name: Apply issue action
-        if: steps.test.outcome == 'failure'
+        if: steps.mode.outputs.mode != 'none'
         env:
           GH_TOKEN: ${{ secrets.ISSUE_TOKEN }}
         run: |

@@ -5,6 +5,7 @@ import java.util.jar.JarOutputStream
 plugins {
 	kotlin("jvm") version "2.4.20"
 	kotlin("plugin.serialization") version "2.4.20"
+	jacoco
 }
 
 val runtimePaths = providers.gradleProperty("autotweaker.runtime")
@@ -70,4 +71,15 @@ tasks.test {
 		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
 		"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
 	)
+}
+
+val coverageJars = runtimeDirs
+	.flatMap { dir -> fileTree(dir) { include("autotweaker-*.jar") }.files }
+	.distinctBy { it.name }
+
+tasks.jacocoTestReport {
+	classDirectories.setFrom(coverageJars)
+	reports {
+		xml.required.set(true)
+	}
 }
