@@ -120,11 +120,13 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          remote="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           if [ -z "$(git log origin/main..HEAD --oneline)" ]; then
             echo "工作区没有新提交，跳过推送"
             exit 0
           fi
-          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+          git pull --rebase --autostash "$remote" main
+          git push "$remote" HEAD:main
 
       - name: Apply issue action
         if: steps.mode.outputs.mode != 'none'
