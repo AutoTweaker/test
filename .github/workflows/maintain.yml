@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       fill:
-        description: '测试全绿时也执行填充'
+        description: '根据覆盖率补充测试'
         type: boolean
         default: false
 
