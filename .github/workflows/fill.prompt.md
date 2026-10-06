@@ -88,7 +88,7 @@
    - 已有对应 issue → 有更多发现才追加 comment，否则什么都不做
    - 没有 → 新建
 
-   写成两个文件（都已在 .gitignore 中）：
+   写成两个文件（都已在 .gitignore 中），不要作多余的探测，直接通过 write 工具创建：
 
    - `.autotweaker/issue.md`：正文，纯 markdown 原样写，不要做任何转义。写清是哪条测试（文件路径 + 测试名）、期望行为与实际行为、判断依据（core 的哪段代码）。把那条测试的代码原样贴进去，方便 core 修完直接对照
    - `.autotweaker/issue.json`：元数据，二选一：

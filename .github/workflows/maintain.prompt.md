@@ -54,7 +54,7 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
    - 已有对应 issue → 有更多发现才追加 comment，否则什么都不做
    - 没有 → 新建
 
-   写成两个文件（都已在 .gitignore 中）：
+   写成两个文件（都已在 .gitignore 中），不要作多余的探测，直接通过 write 工具创建：
 
    - `.autotweaker/issue.md`：正文，纯 markdown 原样写，不要做任何转义。写清哪个测试失败、期望行为与实际行为、判断依据（core 的哪次提交、哪段代码）
    - `.autotweaker/issue.json`：元数据，二选一：
