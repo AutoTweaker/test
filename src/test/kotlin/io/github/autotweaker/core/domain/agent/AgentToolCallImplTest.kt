@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.time.Instant
@@ -89,24 +90,18 @@ class AgentToolCallImplTest {
 	}
 
 	@Test
-	fun `both arguments missing starts as pending`() {
-		val toolCall = AgentToolCallImpl(call(), null, null)
+	fun `both arguments missing is rejected`() {
+		assertFailsWith<IllegalStateException> {
+			AgentToolCallImpl(call(), null, null)
+		}
+	}
+
+	@Test
+	fun `calling cannot skip waiting`() {
+		val toolCall = pending()
+		assertFailsWith<IllegalStateException> {
+			toolCall.calling()
+		}
 		assertEquals(ToolCallStatus.PENDING, toolCall.status.value)
-	}
-
-	@Test
-	fun `calling can be invoked directly from pending`() {
-		val toolCall = pending()
-		toolCall.calling()
-		assertEquals(ToolCallStatus.CALLING, toolCall.status.value)
-	}
-
-	@Test
-	fun `finish clears the stored result`() {
-		val toolCall = pending()
-		toolCall.waiting()
-		toolCall.calling()
-		toolCall.finish(result())
-		assertNull(toolCall.result)
 	}
 }
