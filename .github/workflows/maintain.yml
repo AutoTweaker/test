@@ -151,15 +151,14 @@ jobs:
             echo
             echo "---"
             echo
-            echo "> 以上内容为 AutoTweaker/test 维护工作流生成，参见 [工作流运行记录](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})。"
+            echo "> 以上内容由 AutoTweaker Agent 生成，参见 [运行记录](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})。"
           } > .autotweaker/body.md
           action=$(jq -r '.action' "$json")
           case "$action" in
             create)
               gh issue create --repo AutoTweaker/core \
                 --title "$(jq -r '.title' "$json")" \
-                --body-file .autotweaker/body.md \
-                --type Bug
+                --body-file .autotweaker/body.md
               ;;
             comment)
               gh issue comment "$(jq -r '.issue' "$json")" \
