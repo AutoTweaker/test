@@ -81,6 +81,7 @@ jobs:
             fi
           fi
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "本轮 mode=$mode"
 
       - name: Prepare workspace
         if: steps.mode.outputs.mode != 'none'
@@ -95,6 +96,7 @@ jobs:
           else
             file=.github/workflows/fill.prompt.md
           fi
+          echo "加载 $file"
           {
             echo 'text<<PROMPT_EOF'
             cat "$file"
