@@ -17,39 +17,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Restore last tested core
-        uses: actions/cache/restore@v6
-        with:
-          path: ${{ runner.temp }}/last-core-sha
-          key: core-${{ github.run_id }}
-          restore-keys: core-
-
-      - name: Check core HEAD
-        id: check
-        run: |
-          state="$RUNNER_TEMP/last-core-sha"
-          sha=$(git ls-remote https://github.com/AutoTweaker/core refs/heads/main | cut -f1)
-          last=""
-          if [ -f "$state" ]; then
-            last=$(cat "$state")
-          fi
-          if [ "$last" = "$sha" ]; then
-            echo "core 未变化（${sha:0:7}），跳过本次测试"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "$sha" > "$state"
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-
       - name: Checkout test
-        if: steps.check.outputs.skip != 'true'
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Checkout core
-        if: steps.check.outputs.skip != 'true'
         uses: actions/checkout@v7
         with:
           repository: AutoTweaker/core
@@ -58,38 +32,31 @@ jobs:
           persist-credentials: false
 
       - name: Setup Java
-        if: steps.check.outputs.skip != 'true'
         uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '25'
 
       - name: Setup Gradle
-        if: steps.check.outputs.skip != 'true'
         uses: gradle/actions/setup-gradle@v6
 
       - name: Configure git
-        if: steps.check.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config core.editor true
 
       - name: Build core
-        if: steps.check.outputs.skip != 'true'
         run: |
           cd .core
           ./gradlew build
 
       - name: Export core runtime
-        if: steps.check.outputs.skip != 'true'
         run: |
           cd .core
           ./gradlew :autotweaker-core:exportRuntime :cli-adapter:exportRuntime
 
       - name: Run tests
         id: test
-        if: steps.check.outputs.skip != 'true'
         continue-on-error: true
         run: |
           ./gradlew test -Pautotweaker.runtime="$PWD/.core/core/build/runtime:$PWD/.core/cli-adapter/build/runtime"
@@ -168,13 +135,6 @@ jobs:
               exit 1
               ;;
           esac
-
-      - name: Save tested core
-        if: success() && steps.check.outputs.skip != 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: ${{ runner.temp }}/last-core-sha
-          key: core-${{ github.run_id }}
 
       - name: Upload test reports
         if: always()
