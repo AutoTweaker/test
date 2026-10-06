@@ -8,7 +8,7 @@
 - core 仓库源码在 `.core/`，含完整 git 历史，禁止修改
 - core 的运行时产物已经导出好了（`.core/core/build/runtime` 与 `.core/cli-adapter/build/runtime`），跑测试直接引用，不要重新构建 core
 - `.autotweaker/` 目录已建好，issue 文件写在那里
-- git 身份已配置好（`user.name` / `user.email`），直接 `git commit -m "..."` 即可，不要改动 git 配置
+- git 身份已配置好（`user.name` / `user.email`），不要改动 git 配置
 - 测试报告在 `build/test-results/test/*.xml` 与 `build/reports/tests/test/`
 - 跑测试必须带产物参数：
 
@@ -41,7 +41,17 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 
 ## 收尾（必须完成）
 
-1. **提交**：把改动 commit（`git add` + `git commit`，不要 push，不要动 `.core/`）。没有 commit 的改动会在 CI 结束时丢弃。commit message 用中文，说明适配了 core 的哪个改动。
+1. **提交**：把改动 commit（`git add` + `git commit`，不要 push，不要动 `.core/`）。没有 commit 的改动会在 CI 结束时丢弃。
+
+   commit message 用中文，说明适配了 core 的哪个改动。**不要用 `git commit -m "..."`**：消息里会带反引号、`$`、引号这类字符，塞进命令行会被 shell 先解析一遍。用带引号的 heredoc 从 stdin 读：
+
+   ```bash
+   git commit -F - <<'EOF'
+   标题
+
+   正文
+   EOF
+   ```
 
 2. **issue 操作**：只有判定出"core 的 bug 导致测试失败"时才做，可以与其他测试的修改同时进行。先查重：
 

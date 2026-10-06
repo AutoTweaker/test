@@ -8,7 +8,7 @@
 - core 仓库源码在 `.core/`，含完整 git 历史，禁止修改
 - core 的运行时产物已经导出好了（`.core/core/build/runtime` 与 `.core/cli-adapter/build/runtime`），跑测试直接引用，不要重新构建 core
 - `.autotweaker/` 目录已建好，issue 文件写在那里
-- git 身份已配置好（`user.name` / `user.email`），直接 `git commit -m "..."` 即可，不要改动 git 配置
+- git 身份已配置好（`user.name` / `user.email`），不要改动 git 配置
 - 环境变量 `GH_TOKEN` 已就绪，`gh` 会自动读取它；不要运行认证、登录或鉴权检查类命令（`gh auth login`、`gh auth status` 之类），也不要给命令手动附加 token 参数
 - 这个 token 是只读的：你没有写权限，不要尝试创建或修改任何 GitHub 资源
 
@@ -68,7 +68,17 @@
 
 1. **重跑全量测试**，确认没有弄坏原有的测试。
 
-2. **提交**：把新增的测试 commit（不要 push，不要动 `.core/`）。没有 commit 的改动会在 CI 结束时丢弃。commit message 用中文，写明补的是哪个包的什么行为。
+2. **提交**：把新增的测试 commit（不要 push，不要动 `.core/`）。没有 commit 的改动会在 CI 结束时丢弃。
+
+   commit message 用中文，写明补的是哪个包的什么行为。**不要用 `git commit -m "..."`**：消息里会带反引号、`$`、引号这类字符，塞进命令行会被 shell 先解析一遍。用带引号的 heredoc 从 stdin 读：
+
+   ```bash
+   git commit -F - <<'EOF'
+   标题
+
+   正文
+   EOF
+   ```
 
 3. **新测试挂了，先怀疑自己**：读 `.core/` 里那段实现，判断到底是哪种情况。
 
