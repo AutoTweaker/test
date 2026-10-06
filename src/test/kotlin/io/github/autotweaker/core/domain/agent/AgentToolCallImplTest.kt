@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class AgentToolCallImplTest {
@@ -103,5 +104,10 @@ class AgentToolCallImplTest {
 			toolCall.calling()
 		}
 		assertEquals(ToolCallStatus.PENDING, toolCall.status.value)
+	}
+
+	@Test
+	fun `pipeline self test failure`() {
+		assertTrue(false)
 	}
 }
