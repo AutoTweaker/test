@@ -16,7 +16,8 @@
   ./gradlew test -Pautotweaker.runtime="$PWD/.core/core/build/runtime:$PWD/.core/cli-adapter/build/runtime"
   ```
 
-- 环境变量 `GH_TOKEN` 是只读的，只能用来查 core 的 issue（`gh issue list --repo AutoTweaker/core --search "<关键词>"`）。你没有写权限，不要尝试创建或修改任何 GitHub 资源
+- 环境变量 `GH_TOKEN` 已就绪，`gh` 会自动读取它，直接用 `gh issue list --repo AutoTweaker/core --search "<关键词>"` 查询即可；不要运行认证、登录或鉴权检查类命令（`gh auth login`、`gh auth status` 之类），也不要给命令手动附加 token 参数
+- 这个 token 是只读的：你没有写权限，不要尝试创建或修改任何 GitHub 资源
 
 ## 判定
 
