@@ -145,12 +145,12 @@ class MiMoClientMappingTest {
 	
 	@Test
 	fun `createRequestBody maps ToolMessage`() {
-		val tool = ChatMessage.ToolResult(id = "call-1", content = "result")
+		val tool = ChatMessage.ToolResult(id = "call-1", content = "result".toContentPart())
 		val request = chatRequest(model = "test", messages = listOf(tool))
 		val body = createRequestBody(request)
 		
 		val msg = body.messages[0] as MiMoMessage.ToolMessage
-		assertEquals("result", msg.content)
+		assertEquals(listOf(MiMoMessage.Content.TextPart("result")), msg.content)
 		assertEquals("call-1", msg.toolCallId)
 	}
 	

@@ -129,7 +129,7 @@ class ApprovalProcessorTest {
 		val tools = ctx.context.value.currentRound?.turns?.single()?.tools
 		assertEquals(1, tools?.size)
 		assertEquals(ToolResultStatus.SUCCESS, tools!![0].result.getOrNull()?.status)
-		assertEquals("tool done", tools[0].result.getOrNull()?.content)
+		assertEquals("tool done", tools[0].result.getOrNull()?.content())
 	}
 	
 	@Test
@@ -165,7 +165,7 @@ class ApprovalProcessorTest {
 		ctx.finalizeToolTurn()
 		val result = ctx.context.value.currentRound?.turns?.single()?.tools?.single()?.result?.getOrNull()
 		assertEquals(ToolResultStatus.REJECTED, result?.status)
-		assertTrue(result!!.content.contains("no thanks"))
+		assertTrue(result!!.content()!!.contains("no thanks"))
 	}
 	
 	// endregion

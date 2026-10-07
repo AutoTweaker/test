@@ -331,7 +331,7 @@ class RoundRunnerTest {
 		coVerify(exactly = 2) { thinking.execute(any(), any(), any()) }
 		val turn = h.ctx.context.value.historyRounds!!.single().turns!!.single()
 		assertEquals(ToolResultStatus.SUCCESS, turn.tools.single().result.getOrNull()?.status)
-		assertEquals("tool result", turn.tools.single().result.getOrNull()?.content)
+		assertEquals("tool result", turn.tools.single().result.getOrNull()?.content())
 		h.runner.shutdown()
 	}
 	

@@ -115,7 +115,7 @@ class DeepSeekClientMappingTest {
 		assertEquals("deepseek-v4-pro", body.model)
 		assertEquals(1, body.messages.size)
 		assertIs<DeepSeekMessage.UserMessage>(body.messages[0])
-		assertEquals(listOf(DeepSeekMessage.UserMessage.Part.Text("hello")), body.messages[0].content)
+		assertEquals(listOf(DeepSeekMessage.Content.Text("hello")), body.messages[0].content)
 	}
 	
 	@Test
@@ -150,12 +150,12 @@ class DeepSeekClientMappingTest {
 	
 	@Test
 	fun `createRequestBody maps ToolMessage`() {
-		val tool = ChatMessage.ToolResult(id = "call-1", content = "result")
+		val tool = ChatMessage.ToolResult(id = "call-1", content = "result".toContentPart())
 		val request = request(messages = listOf(tool))
 		val body = createRequestBody(request)
 		
 		val msg = body.messages[0] as DeepSeekMessage.ToolMessage
-		assertEquals("result", msg.content)
+		assertEquals(listOf(DeepSeekMessage.Content.Text("result")), msg.content)
 		assertEquals("call-1", msg.toolCallId)
 	}
 	

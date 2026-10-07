@@ -23,6 +23,7 @@ import io.github.autotweaker.api.generated.tool.args.WriteArgs
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.tool.write.WriteRequest
 import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.exception.FileNotFoundException
@@ -62,6 +63,9 @@ class WriteTest {
 		c.register(fs)
 		return c
 	}
+	
+	private fun List<ContentPart>.text(): String =
+		filterIsInstance<ContentPart.Text>().joinToString("") { it.content }
 	
 	private fun sha(content: String) = Sha256.hash(content)
 	
@@ -273,7 +277,7 @@ class WriteTest {
 		)
 		
 		assertTrue(result.success)
-		assertEquals("创建了文件 $path，新文件 SHA256：$newSha", result.result)
+		assertEquals("创建了文件 $path，新文件 SHA256：$newSha", result.result.text())
 		coVerify(exactly = 1) { fs.create(path, "hello") }
 	}
 	
@@ -295,7 +299,7 @@ class WriteTest {
 		assertTrue(result.success)
 		assertEquals(
 			"覆盖了文件 $path，当前 SHA256：$newSha，文件变更：\n${unifiedDiff(old, new)}",
-			result.result
+			result.result.text()
 		)
 		coVerify(exactly = 1) { fs.update(path, oldSha, new) }
 	}
@@ -319,7 +323,7 @@ class WriteTest {
 		assertEquals(
 			"覆盖了文件 $path，当前 SHA256：$newSha，文件变更：\n" +
 					"文件的旧内容过大（可能超过了10MB），完整diff无法展示",
-			result.result
+			result.result.text()
 		)
 	}
 	
@@ -337,7 +341,7 @@ class WriteTest {
 		)
 		
 		assertTrue(result.success)
-		assertEquals("覆盖了文件 $path，当前 SHA256：$oldSha，文件变更：\nUNCHANGED", result.result)
+		assertEquals("覆盖了文件 $path，当前 SHA256：$oldSha，文件变更：\nUNCHANGED", result.result.text())
 	}
 	
 	// endregion

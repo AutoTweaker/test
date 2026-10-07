@@ -2,6 +2,7 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.ToolCallStatus
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -43,7 +44,7 @@ class AgentToolCallImplTest {
 		timestamp = instant,
 		origin = UUID.randomUUID(),
 		callId = "call-1",
-		content = "done",
+		content = listOf(ContentPart.Text("done")),
 		data = null,
 		presentation = emptyList(),
 		status = ToolResultStatus.SUCCESS,

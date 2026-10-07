@@ -21,6 +21,7 @@ package io.github.autotweaker.core.domain.tool.impl.bash
 import io.github.autotweaker.api.generated.tool.args.BashArgs
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.tool.Tool
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.api.types.tool.ToolMeta
@@ -56,7 +57,8 @@ class BashTest {
 	private lateinit var bash: Bash
 	private var storedJson: JsonElement? = null
 	private val truncation = mockk<TruncationService>().also {
-		every { it.invoke(any(), any(), any()) } answers { firstArg() }
+		every { it.truncate(any<String>(), any(), any()) } answers { firstArg() }
+		every { it.truncate(any<List<ContentPart>>(), any(), any()) } answers { firstArg() }
 	}
 	
 	@BeforeTest
@@ -104,6 +106,9 @@ class BashTest {
 		c.register(truncation)
 		return c
 	}
+	
+	private fun List<ContentPart>.text(): String =
+		filterIsInstance<ContentPart.Text>().joinToString("") { it.content }
 	
 	private fun mockResult(
 		exitCode: Int, stdout: String, stderr: String = "", timeout: Boolean = false, durationSeconds: Double = 0.01
@@ -257,9 +262,9 @@ class BashTest {
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
-		assertTrue(result.result.contains("退出码：0"))
-		assertTrue(result.result.contains("123ms"))
-		assertTrue(result.result.contains("hello"))
+		assertTrue(result.result.text().contains("退出码：0"))
+		assertTrue(result.result.text().contains("123ms"))
+		assertTrue(result.result.text().contains("hello"))
 	}
 	
 	@Test
@@ -305,7 +310,7 @@ class BashTest {
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
-		assertTrue(result.result.contains("退出码：1"))
+		assertTrue(result.result.text().contains("退出码：1"))
 	}
 	
 	@Test
@@ -357,8 +362,8 @@ class BashTest {
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
-		assertTrue(result.result.contains("[empty]"))
-		assertTrue(result.result.contains("some error"))
+		assertTrue(result.result.text().contains("[empty]"))
+		assertTrue(result.result.text().contains("some error"))
 	}
 	
 	@Test
@@ -370,8 +375,8 @@ class BashTest {
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
-		assertTrue(result.result.contains("[empty]"))
-		assertTrue(result.result.contains("out"))
+		assertTrue(result.result.text().contains("[empty]"))
+		assertTrue(result.result.text().contains("out"))
 	}
 	
 	@Test
@@ -383,7 +388,7 @@ class BashTest {
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
-		assertTrue(result.result.contains("2.5s"))
+		assertTrue(result.result.text().contains("2.5s"))
 	}
 	
 	@Test
@@ -395,9 +400,9 @@ class BashTest {
 		val args = toolArgs("cmd")
 		val result = bash.execute(container(bashService), args, Channel(Channel.UNLIMITED))
 		
-		assertTrue(result.result.contains("标准输出："))
-		assertTrue(result.result.contains("标准错误："))
-		assertTrue(result.result.contains("执行时间："))
+		assertTrue(result.result.text().contains("标准输出："))
+		assertTrue(result.result.text().contains("标准错误："))
+		assertTrue(result.result.text().contains("执行时间："))
 	}
 	
 	// endregion

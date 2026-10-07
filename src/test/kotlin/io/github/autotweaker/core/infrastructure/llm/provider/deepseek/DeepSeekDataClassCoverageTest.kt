@@ -141,7 +141,7 @@ class DeepSeekDataClassCoverageTest {
 		)
 		assertEquals(
 			"hello",
-			((msg as DeepSeekMessage.UserMessage).content[0] as DeepSeekMessage.UserMessage.Part.Text).text
+			((msg as DeepSeekMessage.UserMessage).content[0] as DeepSeekMessage.Content.Text).text
 		)
 	}
 	
@@ -153,8 +153,10 @@ class DeepSeekDataClassCoverageTest {
 	
 	@Test
 	fun `deserialize DeepSeekMessage ToolMessage`() {
-		val msg = json.decodeFromString<DeepSeekMessage>("""{"role":"tool","content":"result","tool_call_id":"c1"}""")
-		assertEquals("result", (msg as DeepSeekMessage.ToolMessage).content)
+		val msg = json.decodeFromString<DeepSeekMessage>(
+			"""{"role":"tool","content":[{"type":"text","text":"result"}],"tool_call_id":"c1"}"""
+		)
+		assertEquals(listOf(DeepSeekMessage.Content.Text("result")), (msg as DeepSeekMessage.ToolMessage).content)
 		assertEquals("c1", msg.toolCallId)
 	}
 	

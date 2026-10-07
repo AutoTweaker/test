@@ -253,7 +253,7 @@ class ContextManagerTest {
 		assertTrue(cancelled.all { it.status.value == ToolCallStatus.FINISHED })
 		assertEquals(listOf("c1", "c2"), cancelled.map { it.result!!.callId })
 		assertTrue(cancelled.all { it.result!!.status == ToolResultStatus.CANCELLED })
-		assertTrue(cancelled.all { it.result!!.content == ToolSettings.CancelledPending().get() })
+		assertTrue(cancelled.all { it.result!!.content() == ToolSettings.CancelledPending().get() })
 	}
 	
 	@Test
@@ -318,8 +318,8 @@ class ContextManagerTest {
 		
 		val turns = manager.round().turns!!
 		assertEquals(2, turns.size)
-		assertEquals("one", turns[0].tools[0].result.getOrNull()?.content)
-		assertEquals("two", turns[1].tools[0].result.getOrNull()?.content)
+		assertEquals("one", turns[0].tools[0].result.getOrNull()?.content())
+		assertEquals("two", turns[1].tools[0].result.getOrNull()?.content())
 	}
 	
 	@Test
@@ -368,7 +368,7 @@ class ContextManagerTest {
 		val tool = completed.turns!!.single().tools.single()
 		val result = tool.result.getOrNull()!!
 		assertEquals(ToolResultStatus.CANCELLED, result.status)
-		assertEquals(ToolSettings.CancelledPending().get(), result.content)
+		assertEquals(ToolSettings.CancelledPending().get(), result.content())
 		assertEquals(pending.call.callId, tool.call.getOrNull()?.callId)
 		assertEquals(pending.call.callName, tool.call.getOrNull()?.callName)
 		assertEquals(pending.call.resolvedRequest, tool.call.getOrNull()?.resolvedRequest)
@@ -423,7 +423,7 @@ class ContextManagerTest {
 		assertEquals(1, completed.turns?.size)
 		assertEquals(asst.ref(), completed.turns!![0].assistantMsgRef)
 		assertEquals(asst, completed.turns!![0].assistantMessage.getOrNull())
-		assertEquals("result", completed.turns!![0].tools[0].result.getOrNull()?.content)
+		assertEquals("result", completed.turns!![0].tools[0].result.getOrNull()?.content())
 		assertNull(completed.assistantMsgRef)
 		assertNull(manager.context.value.currentRound)
 	}
@@ -440,7 +440,7 @@ class ContextManagerTest {
 		val completed = manager.history().single()
 		assertEquals(1, completed.turns?.size)
 		assertEquals(asst.ref(), completed.turns!![0].assistantMsgRef)
-		assertEquals("result", completed.turns!![0].tools[0].result.getOrNull()?.content)
+		assertEquals("result", completed.turns!![0].tools[0].result.getOrNull()?.content())
 		assertNull(completed.assistantMsgRef)
 	}
 	

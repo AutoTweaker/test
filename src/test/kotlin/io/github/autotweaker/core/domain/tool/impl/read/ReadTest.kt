@@ -23,6 +23,7 @@ import io.github.autotweaker.api.get
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.tool.read.ReadRequest
 import io.github.autotweaker.api.types.tool.read.ReadResult
 import io.github.autotweaker.core.domain.port.FileContent
@@ -103,6 +104,9 @@ class ReadTest {
 	
 	private fun request(request: ReadRequest): JsonElement =
 		Json.encodeToJsonElement(ReadRequest.serializer(), request)
+	
+	private fun List<ContentPart>.text(): String =
+		filterIsInstance<ContentPart.Text>().joinToString("") { it.content }
 	
 	// region resolve
 	
@@ -218,7 +222,7 @@ class ReadTest {
 			)
 		
 		assertTrue(result.success)
-		assertEquals("$sha\n1\tline1\n2\tline2\n", result.result)
+		assertEquals("$sha\n1\tline1\n2\tline2\n", result.result.text())
 	}
 	
 	@Test
@@ -233,7 +237,7 @@ class ReadTest {
 			)
 		
 		assertTrue(result.success)
-		assertEquals("$sha\nline1\nline2\n", result.result)
+		assertEquals("$sha\nline1\nline2\n", result.result.text())
 	}
 	
 	@Test
@@ -248,7 +252,7 @@ class ReadTest {
 			)
 		
 		assertTrue(result.success)
-		assertEquals("$sha\n\\u4E2D\n", result.result)
+		assertEquals("$sha\n\\u4E2D\n", result.result.text())
 	}
 	
 	@Test
@@ -265,7 +269,7 @@ class ReadTest {
 		assertTrue(result.success)
 		assertEquals(
 			"$sha\n" + "a".repeat(99_999) + "\n" + ReadSettings.TruncateMessage().get(),
-			result.result
+			result.result.text()
 		)
 	}
 	
@@ -283,7 +287,7 @@ class ReadTest {
 		assertTrue(result.success)
 		assertEquals(
 			"$sha\n" + "\\u4E2D".repeat(16_666) + "\\u4E2D".take(3) + "\n" + ReadSettings.TruncateMessage().get(),
-			result.result
+			result.result.text()
 		)
 	}
 	
@@ -307,7 +311,7 @@ class ReadTest {
 			)
 		
 		assertTrue(result.success)
-		assertEquals("读取的文件内容与文件哈希 '${sha}' 时的读取相同", result.result)
+		assertEquals("读取的文件内容与文件哈希 '${sha}' 时的读取相同", result.result.text())
 	}
 	
 	@Test
@@ -322,7 +326,7 @@ class ReadTest {
 			)
 		
 		assertFalse(result.success)
-		assertEquals("start_line超出了文件可读行数（3）", result.result)
+		assertEquals("start_line超出了文件可读行数（3）", result.result.text())
 	}
 	
 	@Test
@@ -339,7 +343,7 @@ class ReadTest {
 			)
 		
 		assertFalse(result.success)
-		assertEquals("读取文件'test.txt'时失败：", result.result)
+		assertEquals("读取文件'test.txt'时失败：", result.result.text())
 	}
 	
 	@Test
@@ -356,7 +360,7 @@ class ReadTest {
 			)
 		
 		assertFalse(result.success)
-		assertEquals("读取文件'test.txt'时失败：", result.result)
+		assertEquals("读取文件'test.txt'时失败：", result.result.text())
 	}
 	
 	// endregion
@@ -370,7 +374,7 @@ class ReadTest {
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
-		assertEquals("summary result", result.result)
+		assertEquals("summary result", result.result.text())
 	}
 	
 	@Test
@@ -380,7 +384,7 @@ class ReadTest {
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
-		assertTrue(result.result.contains("必须大于500"))
+		assertTrue(result.result.text().contains("必须大于500"))
 	}
 	
 	@Test
@@ -390,9 +394,10 @@ class ReadTest {
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertTrue(result.success)
-		assertTrue(result.result.startsWith("y".repeat(50000)))
+		assertTrue(result.result.text().startsWith("y".repeat(50000)))
 		assertTrue(
-			result.result.endsWith("[总结器输出内容过多（共60000字符），后续内容已被截断，请尝试修改总结器提示词]")
+			result.result.text()
+				.endsWith("[总结器输出内容过多（共60000字符），后续内容已被截断，请尝试修改总结器提示词]")
 		)
 	}
 	
@@ -405,7 +410,7 @@ class ReadTest {
 		val result = read.execute(c, request(ReadRequest.Summarize(path, path, 1, 1, null)), Channel(Channel.UNLIMITED))
 		
 		assertFalse(result.success)
-		assertEquals("总结器出错，请及时告知用户：RuntimeException: boom", result.result)
+		assertEquals("总结器出错，请及时告知用户：RuntimeException: boom", result.result.text())
 	}
 	
 	// endregion

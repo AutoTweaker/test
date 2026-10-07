@@ -22,6 +22,7 @@ import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.tool.ToolArgs
 import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.ChatMessage
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
@@ -50,7 +51,8 @@ class ToolsTest {
 	
 	private val agentId = UUID.randomUUID()
 	private val truncation = mockk<TruncationService>().also {
-		every { it.invoke(any(), any(), any()) } answers { firstArg() }
+		every { it.truncate(any<String>(), any(), any()) } answers { firstArg() }
+		every { it.truncate(any<List<ContentPart>>(), any(), any()) } answers { firstArg() }
 	}
 	private val bashRequest = Json.encodeToJsonElement(BashArgs.serializer(), BashArgs(cmd = "echo"))
 	private val presentation = listOf(UiBlock.Text("执行了命令"))
@@ -168,7 +170,7 @@ class ToolsTest {
 	fun `executeTool runs active tool successfully`() = runTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput(
-			"output ok",
+			listOf(ContentPart.Text("output ok")),
 			presentation,
 			null,
 			true
@@ -178,14 +180,14 @@ class ToolsTest {
 		val result = tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.status)
-		assertEquals("output ok", result.content)
+		assertEquals("output ok", result.content())
 	}
 	
 	@Test
 	fun `executeTool runs active tool with failure`() = runTest {
 		val tool = mockTool()
 		coEvery { (tool as Tool<BashArgs>).execute(any(), any(), any()) } returns Tool.ToolOutput(
-			"error happened",
+			listOf(ContentPart.Text("error happened")),
 			presentation,
 			null,
 			false
@@ -195,7 +197,7 @@ class ToolsTest {
 		val result = tools.executeTool("bash", "c2", bashRequest, ServiceContainer(), truncation) {}
 		
 		assertEquals(ToolResultStatus.FAILURE, result.status)
-		assertEquals("error happened", result.content)
+		assertEquals("error happened", result.content())
 	}
 	
 	@Test
@@ -227,7 +229,7 @@ class ToolsTest {
 			val channel = thirdArg<Channel<Tool.RuntimeOutput>>()
 			channel.send(Tool.RuntimeOutput("progress 1", Tool.RuntimeOutput.OutputType.INFO))
 			channel.send(Tool.RuntimeOutput("progress 2", Tool.RuntimeOutput.OutputType.INFO))
-			Tool.ToolOutput("done", presentation, null, true)
+			Tool.ToolOutput(listOf(ContentPart.Text("done")), presentation, null, true)
 		}
 		val tools = makeTools(listOf(tool), setOf("bash"))
 		
@@ -238,7 +240,7 @@ class ToolsTest {
 		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.status)
-		assertEquals("done", result.content)
+		assertEquals("done", result.content())
 		assertEquals(listOf("progress 1", "progress 2"), outputs)
 	}
 	// endregion

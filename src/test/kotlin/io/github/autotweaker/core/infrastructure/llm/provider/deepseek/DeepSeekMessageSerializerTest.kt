@@ -44,7 +44,7 @@ class DeepSeekMessageSerializerTest {
 		val jsonStr = """{"role":"user","content":[{"type":"text","text":"hi"}]}"""
 		val msg = json.decodeFromString(DeepSeekMessage.serializer(), jsonStr)
 		assertIs<DeepSeekMessage.UserMessage>(msg)
-		assertEquals("hi", (msg.content[0] as DeepSeekMessage.UserMessage.Part.Text).text)
+		assertEquals("hi", (msg.content[0] as DeepSeekMessage.Content.Text).text)
 	}
 	
 	@Test
@@ -73,10 +73,11 @@ class DeepSeekMessageSerializerTest {
 	
 	@Test
 	fun `deserialize ToolMessage by tool_call_id presence`() {
-		val jsonStr = """{"role":"tool","content":"result","tool_call_id":"call-001"}"""
+		val jsonStr =
+			"""{"role":"tool","content":[{"type":"text","text":"result"}],"tool_call_id":"call-001"}"""
 		val msg = json.decodeFromString(DeepSeekMessage.serializer(), jsonStr)
 		assertIs<DeepSeekMessage.ToolMessage>(msg)
-		assertEquals("result", msg.content)
+		assertEquals(listOf(DeepSeekMessage.Content.Text("result")), msg.content)
 		assertEquals("call-001", msg.toolCallId)
 	}
 	
@@ -85,7 +86,7 @@ class DeepSeekMessageSerializerTest {
 		val jsonStr = """{"role":"unknown","content":[{"type":"text","text":"test"}]}"""
 		val msg = json.decodeFromString(DeepSeekMessage.serializer(), jsonStr)
 		assertIs<DeepSeekMessage.UserMessage>(msg)
-		assertEquals("test", (msg.content[0] as DeepSeekMessage.UserMessage.Part.Text).text)
+		assertEquals("test", (msg.content[0] as DeepSeekMessage.Content.Text).text)
 	}
 	
 	@Test
@@ -101,6 +102,6 @@ class DeepSeekMessageSerializerTest {
 		val jsonStr = """{"content":[{"type":"text","text":"hi"}]}"""
 		val msg = json.decodeFromString(DeepSeekMessage.serializer(), jsonStr)
 		assertIs<DeepSeekMessage.UserMessage>(msg)
-		assertEquals("hi", (msg.content[0] as DeepSeekMessage.UserMessage.Part.Text).text)
+		assertEquals("hi", (msg.content[0] as DeepSeekMessage.Content.Text).text)
 	}
 }

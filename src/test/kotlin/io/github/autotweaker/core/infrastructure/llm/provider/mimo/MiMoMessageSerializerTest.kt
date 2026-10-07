@@ -74,10 +74,11 @@ class MiMoMessageSerializerTest {
 	
 	@Test
 	fun `deserialize ToolMessage by tool_call_id presence`() {
-		val jsonStr = """{"role":"tool","content":"result","tool_call_id":"call-001"}"""
+		val jsonStr =
+			"""{"role":"tool","content":[{"type":"text","text":"result"}],"tool_call_id":"call-001"}"""
 		val msg = json.decodeFromString(MiMoMessage.serializer(), jsonStr)
 		assertIs<MiMoMessage.ToolMessage>(msg)
-		assertEquals("result", msg.content)
+		assertEquals(listOf(MiMoMessage.Content.TextPart("result")), msg.content)
 		assertEquals("call-001", msg.toolCallId)
 	}
 	

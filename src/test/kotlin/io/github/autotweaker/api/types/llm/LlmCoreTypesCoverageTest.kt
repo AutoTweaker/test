@@ -32,7 +32,7 @@ class LlmCoreTypesCoverageTest {
 		val messages = listOf<ChatMessage>(
 			ChatMessage.User(listOf(ContentPart.Text("hi"))),
 			ChatMessage.Assistant("reply"),
-			ChatMessage.ToolResult("call-1", "result")
+			ChatMessage.ToolResult("call-1", listOf(ContentPart.Text("result")))
 		)
 		assertEquals(
 			listOf("user", "assistant", "tool"),
@@ -90,8 +90,8 @@ class LlmCoreTypesCoverageTest {
 	
 	@Test
 	fun `ChatMessage ToolResult all fields`() {
-		val msg = ChatMessage.ToolResult("call-1", "result")
-		assertEquals("result", msg.content)
+		val msg = ChatMessage.ToolResult("call-1", listOf(ContentPart.Text("result")))
+		assertEquals(listOf(ContentPart.Text("result")), msg.content)
 		assertEquals("call-1", msg.id)
 	}
 	

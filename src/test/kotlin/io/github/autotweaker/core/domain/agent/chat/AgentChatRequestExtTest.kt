@@ -280,7 +280,7 @@ class AgentChatRequestExtTest {
 		
 		assertEquals(3, messages.size)
 		val toolChatMsg = messages[2] as ChatMessage.ToolResult
-		assertEquals("file content", toolChatMsg.content)
+		assertEquals(listOf(ContentPart.Text("file content")), toolChatMsg.content)
 		assertEquals("call-1", toolChatMsg.id)
 	}
 	
@@ -305,7 +305,7 @@ class AgentChatRequestExtTest {
 		assertEquals("call-1", toolCalls[0].id)
 		
 		val toolChatMsg = messages[2] as ChatMessage.ToolResult
-		assertEquals("file content", toolChatMsg.content)
+		assertEquals(listOf(ContentPart.Text("file content")), toolChatMsg.content)
 		assertEquals("call-1", toolChatMsg.id)
 	}
 	

@@ -112,7 +112,7 @@ class RoundContextTest {
 		
 		val result = pending.result!!
 		assertEquals(ToolResultStatus.FAILURE, result.status)
-		assertEquals("missing reason", result.content)
+		assertEquals("missing reason", result.content())
 		assertEquals(presentation("parse failed"), result.presentation)
 		assertEquals(ToolCallStatus.FINISHED, pending.status.value)
 		assertNull(pending.resolved)
@@ -144,7 +144,7 @@ class RoundContextTest {
 		
 		val result = pending.result!!
 		assertEquals(ToolResultStatus.FAILURE, result.status)
-		assertEquals("文件test.txt不存在或访问被拒绝", result.content)
+		assertEquals("文件test.txt不存在或访问被拒绝", result.content())
 		assertEquals(presentation("resolve failed"), result.presentation)
 		assertNull(pending.resolved)
 	}
@@ -174,7 +174,7 @@ class RoundContextTest {
 		
 		val result = pending.result!!
 		assertEquals(ToolResultStatus.SUCCESS, result.status)
-		assertEquals("tool activated", result.content)
+		assertEquals("tool activated", result.content())
 		assertEquals(presentation("activated"), result.presentation)
 		assertNull(pending.resolved)
 	}
@@ -235,9 +235,9 @@ class RoundContextTest {
 		
 		val calls = manager.calls()
 		assertEquals(listOf("c1", "c2", "c3"), calls.map { it.call.callId })
-		assertEquals("parse error", calls[0].result!!.content)
-		assertEquals("resolve error", calls[1].result!!.content)
-		assertEquals("activated", calls[2].result!!.content)
+		assertEquals("parse error", calls[0].result!!.content())
+		assertEquals("resolve error", calls[1].result!!.content())
+		assertEquals("activated", calls[2].result!!.content())
 	}
 	
 	@Test

@@ -24,6 +24,7 @@ import io.github.autotweaker.api.generated.tool.args.Replacement
 import io.github.autotweaker.api.generated.tool.args.UnescapeConfig
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Sha256
+import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.tool.edit.EditRequest
 import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.exception.FileNotFoundException
@@ -58,6 +59,9 @@ class EditTest {
 		c.register(fs)
 		return c
 	}
+	
+	private fun List<ContentPart>.text(): String =
+		filterIsInstance<ContentPart.Text>().joinToString("") { it.content }
 	
 	private fun sha(content: String) = Sha256.hash(content)
 	
@@ -595,7 +599,7 @@ class EditTest {
 		coVerify { fs.update(path, oldSha, new) }
 		assertTrue(result.success)
 		val diff = unifiedDiff(old, new)
-		assertEquals("已更新文件 $path，当前 SHA256：$newSha，文件变更：\n$diff", result.result)
+		assertEquals("已更新文件 $path，当前 SHA256：$newSha，文件变更：\n$diff", result.result.text())
 	}
 	
 	@Test
@@ -624,7 +628,7 @@ class EditTest {
 				"你可以使用read工具的Unicode转义模式获取指定片段的精确内容"
 		assertEquals(
 			"已更新文件 $path，当前 SHA256：$newSha，文件变更：\n$diff\n\n$noMatch\n",
-			result.result
+			result.result.text()
 		)
 	}
 	
@@ -646,7 +650,7 @@ class EditTest {
 		)
 		
 		assertTrue(result.success)
-		assertEquals("已更新文件 $path，当前 SHA256：$oldSha，文件变更：\nUNCHANGED", result.result)
+		assertEquals("已更新文件 $path，当前 SHA256：$oldSha，文件变更：\nUNCHANGED", result.result.text())
 	}
 	
 	// endregion

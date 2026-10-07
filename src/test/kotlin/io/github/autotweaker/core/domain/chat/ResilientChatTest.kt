@@ -385,7 +385,7 @@ class ResilientChatTest {
 	
 	@Test
 	fun `tool result messages pass through unchanged`() = runTest {
-		val toolResult = ChatMessage.ToolResult(id = "call-1", content = "42")
+		val toolResult = ChatMessage.ToolResult(id = "call-1", content = listOf(ContentPart.Text("42")))
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
 		ResilientChat(gateway)
