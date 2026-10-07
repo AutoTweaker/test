@@ -125,6 +125,7 @@ jobs:
           api-key: ${{ secrets.DEEPSEEK_API_KEY }}
           provider-type: deepseek
           model-id: deepseek-flash
+          reasoning: high
 
       - name: Push commits
         if: steps.mode.outputs.mode != 'none'
