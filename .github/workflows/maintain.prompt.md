@@ -16,7 +16,7 @@
   ./gradlew test -Pautotweaker.runtime="$PWD/.core/core/build/runtime:$PWD/.core/cli-adapter/build/runtime"
   ```
 
-- 环境变量 `GH_TOKEN` 已就绪，`gh` 会自动读取它，直接用 `gh issue list --repo AutoTweaker/core --search "<关键词>"` 查询即可；不要运行认证、登录或鉴权检查类命令（`gh auth login`、`gh auth status` 之类），也不要给命令手动附加 token 参数
+- 环境变量 `GH_TOKEN` 已就绪，`gh` 会自动读取它，直接用即可；不要运行认证、登录或鉴权检查类命令（`gh auth login`、`gh auth status` 之类），也不要给命令手动附加 token 参数
 - 这个 token 是只读的：你没有写权限，不要尝试创建或修改任何 GitHub 资源
 
 ## 判定
@@ -56,12 +56,15 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 2. **issue 操作**：只有判定出"core 的 bug 导致测试失败"时才做，可以与其他测试的修改同时进行。先查重：
 
    ```bash
-   gh issue list --repo AutoTweaker/core --state open
+   gh issue list --repo AutoTweaker/core --state all --limit 50
    ```
 
    自己在里面找有没有已经在说同一件事的，光看标题不够就翻正文。
 
-   - 已有对应 issue → 有更多发现才追加 comment，否则什么都不做
+   - 已有对应的 **open** issue → 有更多发现才追加 comment，否则什么都不做
+   - 只有 **closed** 的对应 issue → 看它当初为什么被关：
+     - 若说明你这次是错误地推断了 core 的设计（本来就是那样，当初已经讨论过并定为预期行为）→ 不要新建，修正测试
+     - 若是修好之后关掉的、而问题确实又冒出来了 → 新建一条，正文里引用它的编号
    - 没有 → 新建
 
    写成两个文件（都已在 .gitignore 中），不要作多余的探测，直接通过 write 工具创建：
