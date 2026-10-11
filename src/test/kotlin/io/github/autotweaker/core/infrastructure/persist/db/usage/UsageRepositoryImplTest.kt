@@ -47,6 +47,8 @@ class UsageRepositoryImplTest {
 	
 	private val modelA = UUID.randomUUID()
 	private val modelB = UUID.randomUUID()
+	private val agentA = UUID.randomUUID()
+	private val agentB = UUID.randomUUID()
 	private val baseTime = Instant.parse("2026-09-01T00:00:00Z")
 	
 	@BeforeTest
@@ -58,10 +60,11 @@ class UsageRepositoryImplTest {
 	
 	private fun entry(
 		id: UUID = UUID.randomUUID(),
+		agentId: UUID? = null,
 		modelId: UUID = modelA,
 		timestamp: Instant = baseTime,
 		usage: Usage = Usage(promptTokens = 1, completionTokens = 2),
-	) = UsageEntry(id = id, modelId = modelId, timestamp = timestamp, usage = usage)
+	) = UsageEntry(id = id, agentId = agentId, modelId = modelId, timestamp = timestamp, usage = usage)
 	
 	@Test
 	fun `load by ids round trips every token field`() = runBlocking {
@@ -116,7 +119,7 @@ class UsageRepositoryImplTest {
 		repo.save(middle)
 		repo.save(newest)
 		
-		val page = repo.load(2, null)
+		val page = repo.load(null, null, 2, null)
 		
 		assertEquals(listOf(newest.id, middle.id), page.map { it.id })
 	}
@@ -125,7 +128,7 @@ class UsageRepositoryImplTest {
 	fun `load with zero limit returns an empty page`() = runBlocking {
 		repo.save(entry())
 		
-		assertEquals(0, repo.load(0, null).size)
+		assertEquals(0, repo.load(null, null, 0, null).size)
 	}
 	
 	@Test
@@ -137,7 +140,7 @@ class UsageRepositoryImplTest {
 		val collected = mutableListOf<UUID>()
 		var cursor: UsageCursor? = null
 		while (collected.size < entries.size) {
-			val page = repo.load(2, cursor)
+			val page = repo.load(null, null, 2, cursor)
 			check(page.isNotEmpty()) { "游标分页在取完 $expected 之前就返回了空页" }
 			collected += page.map { it.id }
 			cursor = page.last().toCursor()
@@ -151,12 +154,23 @@ class UsageRepositoryImplTest {
 		val shared = (0 until 3).map { entry(timestamp = baseTime) }
 		shared.forEach { repo.save(it) }
 		
-		val first = repo.load(2, null)
-		val second = repo.load(2, first.last().toCursor())
+		val first = repo.load(null, null, 2, null)
+		val second = repo.load(null, null, 2, first.last().toCursor())
 		
 		assertEquals(2, first.size)
 		assertEquals(1, second.size)
 		assertEquals(shared.map { it.id }.toSet(), (first + second).map { it.id }.toSet())
+	}
+	
+	@Test
+	fun `load filters by agent id`() = runBlocking {
+		val a = entry(agentId = agentA, timestamp = baseTime)
+		val b = entry(agentId = agentB, timestamp = baseTime.plus(1.hours))
+		repo.save(a)
+		repo.save(b)
+		
+		assertEquals(listOf(a.id), repo.load(agentA, null, 10, null).map { it.id })
+		assertEquals(listOf(b.id), repo.load(agentB, null, 10, null).map { it.id })
 	}
 	
 	@Test
@@ -196,9 +210,18 @@ class UsageRepositoryImplTest {
 		repo.save(entry(modelId = modelA, usage = Usage(promptTokens = 10, completionTokens = 0)))
 		repo.save(entry(modelId = modelB, usage = Usage(promptTokens = 90, completionTokens = 0)))
 		
-		assertEquals(10, repo.summarize(modelA, null, null)?.promptTokens)
-		assertEquals(90, repo.summarize(modelB, null, null)?.promptTokens)
-		assertEquals(100, repo.summarize(null, null, null)?.promptTokens)
+		assertEquals(10, repo.summarize(null, modelA, null, null)?.promptTokens)
+		assertEquals(90, repo.summarize(null, modelB, null, null)?.promptTokens)
+		assertEquals(100, repo.summarize(null, null, null, null)?.promptTokens)
+	}
+	
+	@Test
+	fun `summarize filters by agent id`() = runBlocking {
+		repo.save(entry(agentId = agentA, usage = Usage(promptTokens = 10, completionTokens = 0)))
+		repo.save(entry(agentId = agentB, usage = Usage(promptTokens = 90, completionTokens = 0)))
+		
+		assertEquals(10, repo.summarize(agentA, null, null, null)?.promptTokens)
+		assertEquals(90, repo.summarize(agentB, null, null, null)?.promptTokens)
 	}
 	
 	@Test
@@ -207,7 +230,7 @@ class UsageRepositoryImplTest {
 		repo.save(entry(timestamp = baseTime.plus(1.hours), usage = Usage(promptTokens = 10, completionTokens = 0)))
 		repo.save(entry(timestamp = baseTime.plus(2.hours), usage = Usage(promptTokens = 100, completionTokens = 0)))
 		
-		val summary = repo.summarize(null, baseTime.plus(1.hours), baseTime.plus(2.hours))
+		val summary = repo.summarize(null, null, baseTime.plus(1.hours), baseTime.plus(2.hours))
 		
 		assertEquals(110, summary?.promptTokens)
 	}
@@ -216,7 +239,7 @@ class UsageRepositoryImplTest {
 	fun `summarize returns null when the time range matches nothing`() = runBlocking {
 		repo.save(entry(timestamp = baseTime))
 		
-		assertNull(repo.summarize(null, baseTime.plus(10.hours), null))
+		assertNull(repo.summarize(null, null, baseTime.plus(10.hours), null))
 	}
 	
 	@Test
@@ -237,6 +260,6 @@ class UsageRepositoryImplTest {
 		repo.save(withReasoning)
 		repo.save(withoutReasoning)
 		
-		assertEquals(5, repo.summarize(null, null, null)?.reasoningTokens)
+		assertEquals(5, repo.summarize(null, null, null, null)?.reasoningTokens)
 	}
 }

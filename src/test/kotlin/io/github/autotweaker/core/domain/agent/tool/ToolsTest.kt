@@ -26,7 +26,6 @@ import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.tool.ToolMeta
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.tool.ServiceContainer
 import io.github.autotweaker.core.domain.tool.port.TruncationService
 import io.github.autotweaker.core.test.TestServices
@@ -236,7 +235,7 @@ class ToolsTest {
 		val outputs = mutableListOf<String>()
 		val result = tools.executeTool(
 			"bash", "c2", bashRequest, ServiceContainer(), truncation,
-			onToolOutput = { outputs.add(((it as RuntimeOutput.Output).output as AgentOutput.Tool).content) },
+			onOutput = { outputs.add((it as AgentOutput.Tool).content) },
 		)
 		
 		assertEquals(ToolResultStatus.SUCCESS, result.status)

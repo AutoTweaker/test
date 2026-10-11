@@ -59,16 +59,18 @@ class ThinkingStageTest {
 	
 	private val msg = TestServices.messageBuilder()
 	
+	private val workspace: () -> Path = { Path.of(".") }
+	private val truncation = mockk<TruncationService>()
+	
 	private val provider = ToolProvider(
 		shellExecutor = mockk<ShellExecutor>(),
 		rawFileSystem = mockk<RawFileSystem>(),
 		pathResolver = mockk<PathResolver>(),
 		temporaryStorage = mockk<TemporaryStorage>(),
 		summaryService = mockk<SummaryService>(),
+		truncation = truncation,
+		workspace = workspace,
 	)
-	
-	private val workspace: () -> Path = { Path.of(".") }
-	private val truncation = mockk<TruncationService>()
 	private val model = AgentModel(
 		model = mockk<RuntimeModel>(),
 		reasoning = null,
@@ -159,10 +161,7 @@ class ThinkingStageTest {
 		llmService = llm,
 		tools = tools,
 		provider = provider,
-		workspace = workspace,
-		truncation = truncation,
 		status = MutableStateFlow(AgentStatus.FREE),
-		onOutput = {},
 	)
 	
 	private suspend fun success(toolCalls: List<ChatMessage.Assistant.ToolCall>?) =

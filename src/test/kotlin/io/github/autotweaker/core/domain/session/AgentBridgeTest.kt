@@ -36,8 +36,6 @@ import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.chat.MessageConverts
 import io.github.autotweaker.core.domain.agent.chat.merge
-import io.github.autotweaker.core.domain.agent.compact.SummaryService
-import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.*
 import io.github.autotweaker.core.test.TestServices
@@ -93,6 +91,8 @@ class AgentBridgeTest {
 	): AgentBridge {
 		val deps = AgentDeps(
 			// AgentChat 由 AgentImpl 用 deps.resilientChat 自建，消息保存进 MessageCache 以便经 getMessage 读回
+			shellExecutor = mockk(relaxed = true),
+			rawFileSystem = mockk<RawFileSystem>(relaxed = true),
 			messageCacheImpl = TestServices.messageCache,
 			resilientChat = chat,
 			messageConverts = MessageConverts(
@@ -103,14 +103,8 @@ class AgentBridgeTest {
 				systemInfo = mockk<SystemInfoService>(relaxed = true),
 				gitService = mockk<GitStatusService>(relaxed = true),
 			),
-			toolProvider = ToolProvider(
-				shellExecutor = mockk(relaxed = true),
-				rawFileSystem = mockk<RawFileSystem>(relaxed = true),
-				pathResolver = mockk<PathResolver>(relaxed = true),
-				temporaryStorage = mockk<TemporaryStorage>(relaxed = true),
-				summaryService = SummaryService(chat),
-			),
 			pathResolver = mockk<PathResolver>(relaxed = true),
+			usageRepository = mockk(relaxed = true),
 			temporaryStorage = mockk<TemporaryStorage>(relaxed = true),
 		)
 		return AgentBridge(
@@ -118,7 +112,6 @@ class AgentBridgeTest {
 			host = mockk(),
 			onShutdown = {},
 			sessionRepo = store,
-			usageRepo = mockk<UsageRepository>(relaxed = true),
 			initialData = data,
 			resolveModel = {
 				// toModelConfig() 需要非空 Model.id

@@ -25,9 +25,9 @@ import io.github.autotweaker.api.types.message.ref
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
-import io.github.autotweaker.core.domain.agent.RuntimeOutput
 import io.github.autotweaker.core.domain.agent.runner.ContextManager
 import io.github.autotweaker.core.domain.chat.ResilientChat
+import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -62,8 +62,9 @@ class CompactServiceTest {
 	
 	private fun compactService(
 		chat: ResilientChat = mockk(relaxed = true),
-		onOutput: (RuntimeOutput) -> Unit = {},
-	) = CompactService(agentId, chat, onOutput, TestServices.messageCache, msg)
+		onOutput: (AgentOutput) -> Unit = {},
+		usage: UsageRepository = mockk(relaxed = true),
+	) = CompactService(agentId, chat, onOutput, TestServices.messageCache, usage, msg)
 	
 	private suspend fun managerWithHistory(): ContextManager {
 		val manager = ContextManager(RuntimeContext(null, null, null, null, null), msg)
@@ -138,17 +139,16 @@ class CompactServiceTest {
 	fun `failed compact retries up to max retries and reports error`() = runTest {
 		val (chat, callCount) = mockResilientChat(throwException = RuntimeException("llm down"))
 		val manager = managerWithHistory()
-		val outputs = mutableListOf<RuntimeOutput>()
+		val outputs = mutableListOf<AgentOutput>()
 		
-		compactService(chat) { outputs.add(it) }.execute(model, manager)
+		compactService(chat, onOutput = { outputs.add(it) }).execute(model, manager)
 		
 		assertEquals(5, callCount.get())
 		assertNull(manager.context.value.compactedRounds)
 		assertEquals(1, manager.context.value.historyRounds?.size)
 		assertTrue(
 			outputs.any {
-				val output = (it as? RuntimeOutput.Output)?.output
-				output is AgentOutput.Error && output.type == AgentOutput.Error.Type.COMPACT
+				it is AgentOutput.Error && it.type == AgentOutput.Error.Type.COMPACT
 			}
 		)
 	}

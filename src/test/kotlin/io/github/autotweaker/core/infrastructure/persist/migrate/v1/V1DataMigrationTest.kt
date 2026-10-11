@@ -40,6 +40,7 @@ import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.sessio
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.tool.V0ToolResultStatus
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v0.tool.V0UiBlock
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.agent.V1AgentMessage
+import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.agent.V1AgentMessageType
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.config.V1SettingsTable
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.session.V1AgentDataTable
 import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.session.V1AgentMessageTable
@@ -232,7 +233,7 @@ class V1DataMigrationTest {
 		)
 		
 		val usageRow = messages.getValue(fixture.ur1)
-		assertEquals(AgentMessageType.USAGE_RECORD.name, usageRow[V1AgentMessageTable.type].name)
+		assertEquals(V1AgentMessageType.USAGE_RECORD.name, usageRow[V1AgentMessageTable.type].name)
 		val usage = decodeMessage(usageRow)
 		assertIs<V1AgentMessage.UsageRecord>(usage)
 		assertEquals(V0Usage(promptTokens = 5, completionTokens = 6), usage.usage)

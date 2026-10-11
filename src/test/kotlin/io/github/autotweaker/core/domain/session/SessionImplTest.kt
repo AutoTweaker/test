@@ -25,7 +25,6 @@ import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.port.SessionRepository
-import io.github.autotweaker.core.domain.port.UsageRepository
 import io.github.autotweaker.core.test.TestServices
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -60,7 +59,6 @@ class SessionImplTest {
 				agentIndex = AgentIndex.new(),
 			),
 			sessionRepo = sessionRepo,
-			usageRepo = mockk<UsageRepository>(),
 			resolveModel = { mockk<RuntimeModel>() },
 			workspaceId = workspace,
 			workspacePath = Path.of("/tmp"),

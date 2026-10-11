@@ -34,14 +34,13 @@ import io.github.autotweaker.api.types.session.SessionData
 import io.github.autotweaker.core.domain.agent.AgentDeps
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.chat.MessageConverts
-import io.github.autotweaker.core.domain.agent.compact.SummaryService
-import io.github.autotweaker.core.domain.agent.tool.ToolProvider
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.GitStatusService
 import io.github.autotweaker.core.domain.port.ModelResolver
 import io.github.autotweaker.core.domain.port.RawFileSystem
 import io.github.autotweaker.core.domain.port.SessionRepository
+import io.github.autotweaker.core.domain.port.ShellExecutor
 import io.github.autotweaker.core.domain.port.SystemInfoService
 import io.github.autotweaker.core.domain.port.TemporaryStorage
 import io.github.autotweaker.core.domain.port.UsageRepository
@@ -118,7 +117,6 @@ class SessionManagerTest {
 	private fun newManager(modelResolver: ModelResolver = modelResolver()): SessionManager = SessionManager(
 		agentDeps = deps(),
 		sessionRepo = sessionRepo,
-		usageRepo = mockk<UsageRepository>(relaxed = true),
 		modelRepo = modelResolver,
 		secretStore = TestServices.secretStore,
 	)
@@ -151,6 +149,8 @@ class SessionManagerTest {
 	)
 	
 	private fun deps(chat: ResilientChat = mockk(relaxed = true)) = AgentDeps(
+		shellExecutor = mockk(relaxed = true),
+		rawFileSystem = mockk<RawFileSystem>(relaxed = true),
 		messageCacheImpl = TestServices.messageCache,
 		resilientChat = chat,
 		messageConverts = MessageConverts(
@@ -161,14 +161,8 @@ class SessionManagerTest {
 			systemInfo = mockk<SystemInfoService>(relaxed = true),
 			gitService = mockk<GitStatusService>(relaxed = true),
 		),
-		toolProvider = ToolProvider(
-			shellExecutor = mockk(relaxed = true),
-			rawFileSystem = mockk<RawFileSystem>(relaxed = true),
-			pathResolver = mockk<PathResolver>(relaxed = true),
-			temporaryStorage = mockk<TemporaryStorage>(relaxed = true),
-			summaryService = SummaryService(chat),
-		),
 		pathResolver = mockk<PathResolver>(relaxed = true),
+		usageRepository = mockk<UsageRepository>(relaxed = true),
 		temporaryStorage = mockk<TemporaryStorage>(relaxed = true),
 	)
 	

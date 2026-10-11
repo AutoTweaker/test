@@ -58,12 +58,14 @@ class UsageDbApiTest {
 	
 	private fun entry(
 		key: UUID = UUID.randomUUID(),
+		agentId: UUID? = null,
 		promptTokens: Int = 1,
 		completionTokens: Int = 2,
 		reasoningTokens: Int? = null,
 		cacheHitTokens: Int? = null,
 	) = UsageEntry(
 		key = key,
+		agentId = agentId,
 		modelId = modelId,
 		timestamp = timestamp,
 		promptTokens = promptTokens,
@@ -74,7 +76,10 @@ class UsageDbApiTest {
 	
 	@Test
 	fun `put then get round trips every column`() = runBlocking {
-		val saved = entry(promptTokens = 10, completionTokens = 20, reasoningTokens = 3, cacheHitTokens = 4)
+		val saved = entry(
+			agentId = UUID.randomUUID(),
+			promptTokens = 10, completionTokens = 20, reasoningTokens = 3, cacheHitTokens = 4
+		)
 		api.put(saved)
 		
 		assertEquals(saved, api.get(saved.key))

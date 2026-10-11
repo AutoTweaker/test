@@ -23,7 +23,6 @@ import io.github.autotweaker.api.types.agent.AgentContext
 import io.github.autotweaker.api.types.agent.AgentData
 import io.github.autotweaker.api.types.agent.AgentIndex
 import io.github.autotweaker.api.types.agent.ModelConfig
-import io.github.autotweaker.api.types.llm.Usage
 import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.AgentMessageType
@@ -130,22 +129,7 @@ class SessionRepositorySearchTest {
 		}
 	}
 
-	@Test
-	fun `saveMessage mirrors usage records without search text`() = runBlocking {
-		val message = AgentMessage.UsageRecord(
-			id = UUID.randomUUID(),
-			timestamp = baseTime,
-			origin = agentId,
-			model = UUID.randomUUID(),
-			usage = Usage.ZERO,
-		)
-		repo.saveMessage(message)
-		
-		coVerify(exactly = 1) {
-			MessageSearch.upsert(message.id, AgentMessageType.USAGE_RECORD, baseTime, null)
-		}
-	}
-	
+
 	@Test
 	fun `searchMessages delegates to search index`() = runBlocking {
 		val hit = UUID.randomUUID()
