@@ -2,7 +2,7 @@ name: Maintain
 
 on:
   schedule:
-    - cron: '17 3 * * 1'
+    - cron: '17 3 * * 1,4'
   repository_dispatch:
     types: [ core-push ]
   workflow_dispatch:
