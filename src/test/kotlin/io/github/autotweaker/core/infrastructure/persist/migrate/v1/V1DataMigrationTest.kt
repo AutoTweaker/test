@@ -49,6 +49,9 @@ import io.github.autotweaker.core.infrastructure.persist.migrate.model.v1.sessio
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.*
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.TestMethodOrder
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -59,6 +62,7 @@ import kotlin.test.*
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class V1DataMigrationTest {
 	private val settingColumns: List<(ResultRow) -> Any?> = listOf(
 		{ it[V1SettingsTable.byteValue] },
@@ -311,6 +315,7 @@ class V1DataMigrationTest {
 	}
 	
 	@Test
+	@Order(Int.MAX_VALUE)
 	fun `search index is rebuilt`() = runBlocking {
 		val fixture = V1MigrationTestEnv.buildV0()
 		V1DataMigration().migrate()

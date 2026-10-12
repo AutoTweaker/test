@@ -59,7 +59,7 @@ val prepareTestPlugins = tasks.register("prepareTestPlugins") {
 	}
 }
 
-tasks.test {
+fun Test.autotweakerTest() {
 	useJUnitPlatform()
 	maxHeapSize = "2g"
 	dependsOn(prepareTestPlugins)
@@ -71,6 +71,23 @@ tasks.test {
 		"--add-opens", "java.base/java.lang=ALL-UNNAMED",
 		"--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
 	)
+}
+
+// MessageSearch 是持有 message_search 写锁的进程级单例，而 V1 迁移重建索引要独占同一目录，
+// 二者在同一 JVM 内无法共存，故把使用 MessageSearch 的测试拆到独立进程运行
+val searchServiceTest = tasks.register<Test>("searchServiceTest") {
+	description = "在独立 JVM 中运行使用 MessageSearch 的测试"
+	group = "verification"
+	testClassesDirs = sourceSets.test.get().output.classesDirs
+	classpath = sourceSets.test.get().runtimeClasspath
+	include("**/MessageSearchTest.class", "**/SessionRepositorySearchTest.class")
+	autotweakerTest()
+}
+
+tasks.test {
+	autotweakerTest()
+	exclude("**/MessageSearchTest.class", "**/SessionRepositorySearchTest.class")
+	dependsOn(searchServiceTest)
 }
 
 val coverageJars = runtimeDirs
