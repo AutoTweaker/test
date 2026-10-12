@@ -214,7 +214,7 @@ class ChatServiceTest {
 	}
 	
 	@Test
-	fun `chat does not persist usage when underlying stream fails after emitting it`() = runTest {
+	fun `chat persists usage even when underlying stream fails after emitting it`() = runTest {
 		val primary = model()
 		coEvery { modelRepo.resolve(primary.id) } returns primary
 		val usage = Usage(promptTokens = 1, completionTokens = 2)
@@ -224,11 +224,15 @@ class ChatServiceTest {
 				throw IllegalStateException("stream broke")
 			}
 		)
+		val saved = slot<UsageEntry>()
 		
 		assertFailsWith<IllegalStateException> {
 			service.chat(request(primary.id)).toList()
 		}
 		
-		coVerify(exactly = 0) { usageRepo.save(any()) }
+		coVerify(exactly = 1) { usageRepo.save(capture(saved)) }
+		assertEquals(null, saved.captured.agentId)
+		assertEquals(primary.id, saved.captured.modelId)
+		assertEquals(usage, saved.captured.usage)
 	}
 }
