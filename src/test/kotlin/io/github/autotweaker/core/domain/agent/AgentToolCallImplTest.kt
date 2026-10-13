@@ -2,8 +2,8 @@ package io.github.autotweaker.core.domain.agent
 
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.ToolCallStatus
-import io.github.autotweaker.api.types.llm.ContentPart
 import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.test.TestServices

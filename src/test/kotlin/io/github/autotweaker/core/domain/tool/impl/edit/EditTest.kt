@@ -24,7 +24,7 @@ import io.github.autotweaker.api.generated.tool.args.Replacement
 import io.github.autotweaker.api.generated.tool.args.UnescapeConfig
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Sha256
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.tool.edit.EditRequest
 import io.github.autotweaker.core.domain.port.FileContent
 import io.github.autotweaker.core.domain.port.exception.FileNotFoundException

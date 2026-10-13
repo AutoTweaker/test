@@ -23,7 +23,7 @@ import io.github.autotweaker.api.get
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.Sha256
 import io.github.autotweaker.api.types.exception.PathOutsideWorkspaceException
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.tool.read.ReadRequest
 import io.github.autotweaker.api.types.tool.read.ReadResult
 import io.github.autotweaker.core.domain.port.FileContent

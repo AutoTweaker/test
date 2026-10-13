@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.llm.provider.mimo
 
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiToolCall
@@ -84,26 +85,26 @@ class MiMoClientMappingTest {
 		reasoning: ReasoningEffort? = null,
 		stream: Boolean = false,
 		maxTokens: Int? = null,
-		tools: List<ChatRequest.Tool>? = null,
+		tools: List<LlmRequest.Tool>? = null,
 		temperature: Double? = null,
 		jsonOutput: Boolean? = null,
-	): ChatRequest = ChatRequest(
+	): LlmRequest = LlmRequest(
 		model = model, instructions = instructions, messages = messages,
 		reasoning = reasoning, stream = stream, maxTokens = maxTokens,
 		tools = tools, temperature = temperature, jsonOutput = jsonOutput
 	)
 	
-	private fun createRequestBody(request: ChatRequest): MiMoRequest =
+	private fun createRequestBody(request: LlmRequest): MiMoRequest =
 		invokeSuspendProtected("transform", request)
 	
-	private fun mapToChatResult(response: MiMoResponse): ChatResult.Assembled =
+	private fun mapToChatResult(response: MiMoResponse): LlmResult.Assembled =
 		invokeProtected("transform", response)
 	
-	private fun mapChunkToChatResult(chunk: MiMoStreamChunk): ChatResult.Chunk =
+	private fun mapChunkToChatResult(chunk: MiMoStreamChunk): LlmResult.Chunk =
 		invokeProtected("transform", chunk)
 	
-	private fun extractToolCalls(chunk: MiMoStreamChunk): List<ChatResult.ChunkToolCall>? =
-		invokeProtected<ChatResult.Chunk>("transform", chunk).toolCalls
+	private fun extractToolCalls(chunk: MiMoStreamChunk): List<LlmResult.ChunkToolCall>? =
+		invokeProtected<LlmResult.Chunk>("transform", chunk).toolCalls
 	
 	private fun chunkUsage(chunk: MiMoStreamChunk): Usage? =
 		invokeProtected("usage", chunk)
@@ -160,7 +161,7 @@ class MiMoClientMappingTest {
 		val json = kotlinx.serialization.json.Json.parseToJsonElement("""{"key":"value"}""")
 		val request = chatRequest(
 			model = "test", messages = listOf(userMsg),
-			tools = listOf(ChatRequest.Tool("read_file", "read file", json)),
+			tools = listOf(LlmRequest.Tool("read_file", "read file", json)),
 			reasoning = ReasoningEffort(true), temperature = 0.7, maxTokens = 1000, jsonOutput = true
 		)
 		

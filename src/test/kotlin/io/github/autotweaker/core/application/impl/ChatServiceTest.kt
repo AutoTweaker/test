@@ -21,7 +21,7 @@ package io.github.autotweaker.core.application.impl
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.LlmRequest
+import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.llm.Usage
@@ -82,12 +82,12 @@ class ChatServiceTest {
 	)
 	
 	private fun request(modelId: UUID, fallbacks: List<UUID>? = null) =
-		LlmRequest(model = modelId, fallbackModels = fallbacks, messages = emptyList())
+		ChatRequest(model = modelId, fallbackModels = fallbacks, messages = emptyList())
 	
 	private fun assembled(usage: Usage?) =
-		ChatResult.Assembled(ChatMessage.Assistant("hi"), usage)
+		LlmResult.Assembled(ChatMessage.Assistant("hi"), usage)
 	
-	private fun stubReturning(results: Flow<LlmResult>) {
+	private fun stubReturning(results: Flow<ChatResult>) {
 		every {
 			resilientChat.execute(
 				model = any(),
@@ -164,8 +164,8 @@ class ChatServiceTest {
 	fun `chat emits underlying results unchanged`() = runTest {
 		val primary = model()
 		coEvery { modelRepo.resolve(primary.id) } returns primary
-		val chunk = LlmResult(ChatResult.Chunk("partial", null, null), primary.id)
-		val final = LlmResult(assembled(null), primary.id)
+		val chunk = ChatResult(LlmResult.Chunk("partial", null, null), primary.id)
+		val final = ChatResult(assembled(null), primary.id)
 		stubReturning(flowOf(chunk, final))
 		
 		val results = service.chat(request(primary.id)).toList()
@@ -178,7 +178,7 @@ class ChatServiceTest {
 		val primary = model()
 		coEvery { modelRepo.resolve(primary.id) } returns primary
 		val usage = Usage(promptTokens = 10, completionTokens = 5)
-		val result = LlmResult(assembled(usage), primary.id)
+		val result = ChatResult(assembled(usage), primary.id)
 		stubReturning(flowOf(result))
 		val saved = slot<UsageEntry>()
 		
@@ -195,7 +195,7 @@ class ChatServiceTest {
 	fun `chat ignores usage on non-assembled chunks`() = runTest {
 		val primary = model()
 		coEvery { modelRepo.resolve(primary.id) } returns primary
-		stubReturning(flowOf(LlmResult(ChatResult.Chunk("partial", null, null), primary.id)))
+		stubReturning(flowOf(ChatResult(LlmResult.Chunk("partial", null, null), primary.id)))
 		
 		service.chat(request(primary.id)).toList()
 		
@@ -206,7 +206,7 @@ class ChatServiceTest {
 	fun `chat persists nothing when assembled result carries no usage`() = runTest {
 		val primary = model()
 		coEvery { modelRepo.resolve(primary.id) } returns primary
-		stubReturning(flowOf(LlmResult(assembled(null), primary.id)))
+		stubReturning(flowOf(ChatResult(assembled(null), primary.id)))
 		
 		service.chat(request(primary.id)).toList()
 		
@@ -220,7 +220,7 @@ class ChatServiceTest {
 		val usage = Usage(promptTokens = 1, completionTokens = 2)
 		stubReturning(
 			flow {
-				emit(LlmResult(assembled(usage), primary.id))
+				emit(ChatResult(assembled(usage), primary.id))
 				throw IllegalStateException("stream broke")
 			}
 		)

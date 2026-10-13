@@ -22,6 +22,7 @@ import io.github.autotweaker.api.types.agent.AgentOutput
 import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.message.ref
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.AgentModel
 import io.github.autotweaker.core.domain.agent.RuntimeContext
 import io.github.autotweaker.core.domain.agent.RuntimeModel
@@ -79,8 +80,8 @@ class CompactServiceTest {
 	
 	private fun assembledResult(content: String, usage: Usage? = null) = flow {
 		emit(
-			LlmResult(
-				ChatResult.Assembled(
+			ChatResult(
+				LlmResult.Assembled(
 					message = ChatMessage.Assistant(content = content),
 					usage = usage,
 				),
@@ -91,7 +92,7 @@ class CompactServiceTest {
 	
 	
 	private fun mockResilientChat(
-		vararg results: Flow<LlmResult>,
+		vararg results: Flow<ChatResult>,
 		throwException: RuntimeException? = null,
 	): Pair<ResilientChat, AtomicInteger> {
 		val callCount = AtomicInteger(0)

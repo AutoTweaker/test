@@ -19,6 +19,7 @@
 package io.github.autotweaker.core.infrastructure.llm.provider.deepseek
 
 import io.github.autotweaker.api.types.llm.*
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiChunkChoice
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiThinking
 import io.github.autotweaker.core.infrastructure.llm.openai.OpenAiToolCall
@@ -77,13 +78,13 @@ class DeepSeekClientMappingTest {
 		return result as T
 	}
 	
-	private fun createRequestBody(request: ChatRequest): DeepSeekRequest =
+	private fun createRequestBody(request: LlmRequest): DeepSeekRequest =
 		invokeSuspendProtected("transform", request)
 	
-	private fun mapToChatResult(response: DeepSeekResponse): ChatResult.Assembled =
+	private fun mapToChatResult(response: DeepSeekResponse): LlmResult.Assembled =
 		invokeProtected("transform", response)
 	
-	private fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): ChatResult.Chunk =
+	private fun mapChunkToChatResult(chunk: DeepSeekStreamChunk): LlmResult.Chunk =
 		invokeProtected("transform", chunk)
 	
 	private fun chunkUsage(chunk: DeepSeekStreamChunk): Usage? =
@@ -96,10 +97,10 @@ class DeepSeekClientMappingTest {
 		reasoning: ReasoningEffort? = null,
 		stream: Boolean = false,
 		maxTokens: Int? = null,
-		tools: List<ChatRequest.Tool>? = null,
+		tools: List<LlmRequest.Tool>? = null,
 		temperature: Double? = null,
 		jsonOutput: Boolean? = null,
-	) = ChatRequest(
+	) = LlmRequest(
 		model = model, instructions = instructions, messages = messages, reasoning = reasoning,
 		stream = stream, maxTokens = maxTokens, tools = tools, temperature = temperature, jsonOutput = jsonOutput,
 	)
@@ -165,7 +166,7 @@ class DeepSeekClientMappingTest {
 		val json = kotlinx.serialization.json.Json.parseToJsonElement("""{"key":"value"}""")
 		val request = request(
 			messages = listOf(userMsg),
-			tools = listOf(ChatRequest.Tool("read_file", "read file", json)),
+			tools = listOf(LlmRequest.Tool("read_file", "read file", json)),
 			reasoning = ReasoningEffort.HIGH,
 			temperature = 0.7,
 			maxTokens = 1000,

@@ -19,6 +19,7 @@
 package io.github.autotweaker.api.types.llm
 
 import io.github.autotweaker.api.types.Sha256
+import io.github.autotweaker.api.types.message.ContentPart
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlin.test.Test
@@ -96,31 +97,31 @@ class LlmCoreTypesCoverageTest {
 	}
 	
 	@Test
-	fun `ChatResult Failed with status`() {
-		val result = ChatResult.Failed("error", 500)
+	fun `LlmResult Failed with status`() {
+		val result = LlmResult.Failed("error", 500)
 		assertEquals("error", result.message)
 		assertEquals(500, result.statusCode)
 		assertNull(result.exception)
 	}
 	
 	@Test
-	fun `ChatResult Failed without status`() {
-		val result = ChatResult.Failed("error", null)
+	fun `LlmResult Failed without status`() {
+		val result = LlmResult.Failed("error", null)
 		assertEquals("error", result.message)
 		assertNull(result.statusCode)
 	}
 	
 	@Test
-	fun `ChatRequest all fields`() {
+	fun `LlmRequest all fields`() {
 		val params = buildJsonObject { put("key", JsonPrimitive("value")) }
-		val req = ChatRequest(
+		val req = LlmRequest(
 			model = "test-model",
 			instructions = "be helpful",
 			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")))),
 			reasoning = ReasoningEffort.MEDIUM,
 			stream = true,
 			maxTokens = 500,
-			tools = listOf(ChatRequest.Tool("read", "desc", params)),
+			tools = listOf(LlmRequest.Tool("read", "desc", params)),
 			temperature = 0.5,
 			jsonOutput = true
 		)
@@ -136,8 +137,8 @@ class LlmCoreTypesCoverageTest {
 	}
 	
 	@Test
-	fun `ChatRequest minimal fields`() {
-		val req = ChatRequest(
+	fun `LlmRequest minimal fields`() {
+		val req = LlmRequest(
 			model = "m",
 			instructions = null,
 			messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hi")))),
@@ -159,8 +160,8 @@ class LlmCoreTypesCoverageTest {
 	}
 	
 	@Test
-	fun `ChatResult ChunkToolCall all fields`() {
-		val call = ChatResult.ChunkToolCall(index = 0, id = "id1", name = "read", arguments = "{}")
+	fun `LlmResult ChunkToolCall all fields`() {
+		val call = LlmResult.ChunkToolCall(index = 0, id = "id1", name = "read", arguments = "{}")
 		assertEquals(0, call.index)
 		assertEquals("id1", call.id)
 		assertEquals("read", call.name)
@@ -168,8 +169,8 @@ class LlmCoreTypesCoverageTest {
 	}
 	
 	@Test
-	fun `ChatResult Assembled all fields`() {
-		val result = ChatResult.Assembled(
+	fun `LlmResult Assembled all fields`() {
+		val result = LlmResult.Assembled(
 			message = ChatMessage.Assistant("ok"),
 			usage = Usage(promptTokens = 40, completionTokens = 60, reasoningTokens = 10, cacheHitTokens = 5)
 		)
@@ -180,8 +181,8 @@ class LlmCoreTypesCoverageTest {
 	}
 	
 	@Test
-	fun `ChatResult Chunk minimal fields`() {
-		val result = ChatResult.Chunk(content = null, reasoningContent = null, toolCalls = null)
+	fun `LlmResult Chunk minimal fields`() {
+		val result = LlmResult.Chunk(content = null, reasoningContent = null, toolCalls = null)
 		assertNull(result.content)
 		assertNull(result.reasoningContent)
 		assertNull(result.toolCalls)

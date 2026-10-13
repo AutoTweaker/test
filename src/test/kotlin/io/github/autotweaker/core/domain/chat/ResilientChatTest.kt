@@ -23,20 +23,23 @@ import io.github.autotweaker.api.types.Url
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.exception.ChatRetriesExhaustedException
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.ChatTimeout
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.llm.LlmRequest
 import io.github.autotweaker.api.types.llm.LlmResult
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule
 import io.github.autotweaker.api.types.llm.ProviderData.ErrorHandlingRule.RecoveryStrategy
 import io.github.autotweaker.api.types.llm.ReasoningEffort
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.core.domain.agent.RuntimeModel
 import io.github.autotweaker.core.domain.agent.RuntimeProvider
 import io.github.autotweaker.core.domain.port.LlmGateway
+import io.github.autotweaker.core.infrastructure.config.ProviderRepository
 import io.github.autotweaker.core.test.TestServices
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
@@ -56,19 +59,24 @@ class ResilientChatTest {
 		}
 	}
 	
+	private val availableProviders = mutableSetOf<String>()
+	private val providerRepo = mockk<ProviderRepository>().also {
+		every { it.listAvailable() } answers { availableProviders.toSet() }
+	}
+	
 	private class RecordingGateway(
-		private val responder: (Int, ChatRequest) -> Flow<ChatResult>
+		private val responder: (Int, LlmRequest) -> Flow<LlmResult>
 	) : LlmGateway {
-		val requests = mutableListOf<ChatRequest>()
+		val requests = mutableListOf<LlmRequest>()
 		val timeouts = mutableListOf<ChatTimeout>()
 		
 		override fun send(
-			request: ChatRequest,
+			request: LlmRequest,
 			apiKey: String,
 			baseUrl: Url,
 			providerType: String,
 			timeout: ChatTimeout
-		): Flow<ChatResult> {
+		): Flow<LlmResult> {
 			requests += request
 			timeouts += timeout
 			return responder(requests.size, request)
@@ -79,6 +87,7 @@ class ResilientChatTest {
 		name: String = "provider-${UUID.randomUUID()}",
 		rules: List<ErrorHandlingRule> = emptyList()
 	) = RuntimeProvider(UUID.randomUUID(), name, "https://api.example.com/v1".toUrl(), "sk-key", rules)
+		.also { availableProviders += it.name }
 	
 	private fun modelInfo(
 		modelId: String = "test-model",
@@ -107,18 +116,18 @@ class ResilientChatTest {
 		config: Config? = null
 	) = RuntimeModel(UUID.randomUUID(), provider, info, config)
 	
-	private fun assembled(content: String) = ChatResult.Assembled(ChatMessage.Assistant(content))
+	private fun assembled(content: String) = LlmResult.Assembled(ChatMessage.Assistant(content))
 	
 	@Test
 	fun `successful attempt emits assembled result tagged with model id and normalizes empty strings`() = runTest {
 		val model = model()
 		val gateway = RecordingGateway { _, _ ->
-			flow { emit(ChatResult.Assembled(ChatMessage.Assistant("", reasoningContent = ""))) }
+			flow { emit(LlmResult.Assembled(ChatMessage.Assistant("", reasoningContent = ""))) }
 		}
 		
-		val results = ResilientChat(gateway).execute(model, null, messages = emptyList()).toList()
+		val results = ResilientChat(gateway, providerRepo).execute(model, null, messages = emptyList()).toList()
 		
-		val assembled = results.single().result as ChatResult.Assembled
+		val assembled = results.single().result as LlmResult.Assembled
 		assertNull(assembled.message.content)
 		assertNull(assembled.message.reasoningContent)
 		assertEquals(model.id, results.single().model)
@@ -128,32 +137,33 @@ class ResilientChatTest {
 	@Test
 	fun `chunk with empty content and reasoning is normalized to null`() = runTest {
 		val gateway = RecordingGateway { _, _ ->
-			flow { emit(ChatResult.Chunk(content = "", reasoningContent = "", toolCalls = null)) }
+			flow { emit(LlmResult.Chunk(content = "", reasoningContent = "", toolCalls = null)) }
 		}
 		
-		val chunk = ResilientChat(gateway)
+		val chunk = ResilientChat(gateway, providerRepo)
 			.execute(model(), null, messages = emptyList())
-			.toList().single().result as ChatResult.Chunk
+			.toList().single().result as LlmResult.Chunk
 		
 		assertNull(chunk.content)
 		assertNull(chunk.reasoningContent)
 	}
 	
 	@Test
-	fun `always failing response exhausts every round and throws with attempt count`() = runTest {
+	fun `always failing response exhausts retries and throws with attempt count`() = runTest {
 		val model = model()
-		val gateway = RecordingGateway { _, _ -> flow { emit(ChatResult.Failed("down", 500)) } }
-		val emitted = mutableListOf<LlmResult>()
+		val gateway = RecordingGateway { _, _ -> flow { emit(LlmResult.Failed("down", 500)) } }
+		val emitted = mutableListOf<ChatResult>()
 		
 		val error = assertFailsWith<ChatRetriesExhaustedException> {
-			ResilientChat(gateway).execute(model, null, messages = emptyList()).collect { emitted += it }
+			ResilientChat(gateway, providerRepo).execute(model, null, messages = emptyList())
+				.collect { emitted += it }
 		}
 		
-		// MaxRetries=5 次/轮，LlmChatRetries=2 -> 3 轮
-		assertEquals(15, error.attempts)
-		assertEquals(15, gateway.requests.size)
-		assertEquals(15, emitted.size)
-		assertTrue(emitted.all { it.result is ChatResult.Failed })
+		// MaxRetries=5 为单轮重试预算，候选耗尽后不再重头开始
+		assertEquals(5, error.attempts)
+		assertEquals(5, gateway.requests.size)
+		assertEquals(5, emitted.size)
+		assertTrue(emitted.all { it.result is LlmResult.Failed })
 		assertEquals(listOf(model.id), emitted.map { it.model }.distinct())
 	}
 	
@@ -161,16 +171,17 @@ class ResilientChatTest {
 	fun `failed result carrying an exception is emitted with the exception intact`() = runTest {
 		val model = model(provider(rules = listOf(ErrorHandlingRule(500, RecoveryStrategy.FALLBACK))))
 		val cause = RuntimeException("connection reset")
-		val gateway = RecordingGateway { _, _ -> flow { emit(ChatResult.Failed("down", 500, cause)) } }
-		val emitted = mutableListOf<LlmResult>()
+		val gateway = RecordingGateway { _, _ -> flow { emit(LlmResult.Failed("down", 500, cause)) } }
+		val emitted = mutableListOf<ChatResult>()
 		
 		assertFailsWith<ChatRetriesExhaustedException> {
-			ResilientChat(gateway).execute(model, null, messages = emptyList()).collect { emitted += it }
+			ResilientChat(gateway, providerRepo).execute(model, null, messages = emptyList())
+				.collect { emitted += it }
 		}
 		
-		// FALLBACK 且无候选可退，每轮 1 次尝试，共 3 轮
-		assertEquals(3, emitted.size)
-		assertEquals(cause, (emitted.first().result as ChatResult.Failed).exception)
+		// FALLBACK 且无候选可退，只有 1 次尝试
+		assertEquals(1, emitted.size)
+		assertEquals(cause, (emitted.first().result as LlmResult.Failed).exception)
 	}
 	
 	@Test
@@ -178,16 +189,16 @@ class ResilientChatTest {
 		val model = model(provider(rules = listOf(ErrorHandlingRule(500, RecoveryStrategy.RETRY))))
 		val gateway = RecordingGateway { index, _ ->
 			flow {
-				if (index <= 2) emit(ChatResult.Failed("boom", 500))
+				if (index <= 2) emit(LlmResult.Failed("boom", 500))
 				else emit(assembled("ok"))
 			}
 		}
 		
-		val results = ResilientChat(gateway).execute(model, null, messages = emptyList()).toList()
+		val results = ResilientChat(gateway, providerRepo).execute(model, null, messages = emptyList()).toList()
 		
 		assertEquals(3, gateway.requests.size)
 		assertEquals(3, results.size)
-		assertTrue(results.last().result is ChatResult.Assembled)
+		assertTrue(results.last().result is LlmResult.Assembled)
 		assertEquals(listOf(model.id, model.id, model.id), results.map { it.model })
 	}
 	
@@ -197,20 +208,20 @@ class ResilientChatTest {
 		val fallback = model(provider(), modelInfo("fallback"))
 		val gateway = RecordingGateway { _, request ->
 			flow {
-				if (request.model == "primary") emit(ChatResult.Failed("unavailable", 503))
+				if (request.model == "primary") emit(LlmResult.Failed("unavailable", 503))
 				else emit(assembled("recovered"))
 			}
 		}
 		
-		val results = ResilientChat(gateway)
+		val results = ResilientChat(gateway, providerRepo)
 			.execute(primary, listOf(fallback), messages = emptyList())
 			.toList()
 		
 		assertEquals(listOf("primary", "fallback"), gateway.requests.map { it.model })
 		assertEquals(2, results.size)
-		assertTrue(results[0].result is ChatResult.Failed)
+		assertTrue(results[0].result is LlmResult.Failed)
 		assertEquals(fallback.id, results[1].model)
-		assertEquals("recovered", (results[1].result as ChatResult.Assembled).message.content)
+		assertEquals("recovered", (results[1].result as LlmResult.Assembled).message.content)
 	}
 	
 	@Test
@@ -221,12 +232,12 @@ class ResilientChatTest {
 		val otherProvider = model(provider(), modelInfo("other-provider"))
 		val gateway = RecordingGateway { _, request ->
 			flow {
-				if (request.model == "primary") emit(ChatResult.Failed("bad gateway", 502))
+				if (request.model == "primary") emit(LlmResult.Failed("bad gateway", 502))
 				else emit(assembled("ok"))
 			}
 		}
 		
-		val results = ResilientChat(gateway)
+		val results = ResilientChat(gateway, providerRepo)
 			.execute(primary, listOf(sameProvider, otherProvider), messages = emptyList())
 			.toList()
 		
@@ -244,12 +255,12 @@ class ResilientChatTest {
 		val larger = model(provider(), modelInfo("larger", contextWindow = 16_000))
 		val gateway = RecordingGateway { _, request ->
 			flow {
-				if (request.model == "primary") emit(ChatResult.Failed("too long", 400))
+				if (request.model == "primary") emit(LlmResult.Failed("too long", 400))
 				else emit(assembled("ok"))
 			}
 		}
 		
-		val results = ResilientChat(gateway)
+		val results = ResilientChat(gateway, providerRepo)
 			.execute(primary, listOf(smaller, larger), messages = emptyList())
 			.toList()
 		
@@ -258,10 +269,23 @@ class ResilientChatTest {
 	}
 	
 	@Test
+	fun `candidates without an installed provider are filtered out`() = runTest {
+		val model = model()
+		availableProviders.clear()
+		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
+		
+		assertFailsWith<ChatRetriesExhaustedException> {
+			ResilientChat(gateway, providerRepo).execute(model, null, messages = emptyList()).toList()
+		}
+		
+		assertEquals(0, gateway.requests.size)
+	}
+	
+	@Test
 	fun `request timeout defaults to the configured settings when none is given`() = runTest {
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway).execute(model(), null, messages = emptyList()).toList()
+		ResilientChat(gateway, providerRepo).execute(model(), null, messages = emptyList()).toList()
 		
 		assertEquals(ChatTimeout(600.seconds, 10.seconds, 30.seconds), gateway.timeouts.single())
 	}
@@ -271,7 +295,7 @@ class ResilientChatTest {
 		val custom = ChatTimeout(5.seconds, 1.seconds, 2.seconds)
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway).execute(model(), null, custom, messages = emptyList()).toList()
+		ResilientChat(gateway, providerRepo).execute(model(), null, custom, messages = emptyList()).toList()
 		
 		assertEquals(custom, gateway.timeouts.single())
 	}
@@ -280,7 +304,7 @@ class ResilientChatTest {
 	fun `stream flag is cleared when the model does not support streaming`() = runTest {
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(model(info = modelInfo(supportsStreaming = false)), null, messages = emptyList(), stream = true)
 			.toList()
 		
@@ -291,7 +315,7 @@ class ResilientChatTest {
 	fun `stream flag is preserved when the model supports streaming`() = runTest {
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(model(info = modelInfo(supportsStreaming = true)), null, messages = emptyList(), stream = true)
 			.toList()
 		
@@ -314,7 +338,7 @@ class ResilientChatTest {
 		)
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(model(info = modelInfo()), null, messages = listOf(user))
 			.toList()
 		
@@ -333,7 +357,7 @@ class ResilientChatTest {
 		)
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(
 				model(info = modelInfo(supportsImage = true, supportsAudio = true, supportsVideo = true)),
 				null,
@@ -350,7 +374,7 @@ class ResilientChatTest {
 		val assistant = ChatMessage.Assistant(content = null, reasoningContent = "thinking")
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(
 				model(info = modelInfo(supportsReasoning = false)),
 				null,
@@ -371,7 +395,7 @@ class ResilientChatTest {
 		val assistant = ChatMessage.Assistant(content = "answer", reasoningContent = "thinking")
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(
 				model(info = modelInfo(supportsReasoning = true)),
 				null,
@@ -388,7 +412,7 @@ class ResilientChatTest {
 		val toolResult = ChatMessage.ToolResult(id = "call-1", content = listOf(ContentPart.Text("42")))
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(model(), null, messages = listOf(toolResult))
 			.toList()
 		
@@ -400,7 +424,7 @@ class ResilientChatTest {
 		val assistant = ChatMessage.Assistant(content = null, reasoningContent = null)
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(
 				model(info = modelInfo(supportsReasoning = true)),
 				null,
@@ -419,7 +443,7 @@ class ResilientChatTest {
 		val assistant = ChatMessage.Assistant(content = null, reasoningContent = "thinking")
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(
 				model(info = modelInfo(supportsReasoning = true)),
 				null,
@@ -437,7 +461,7 @@ class ResilientChatTest {
 	fun `temperature and max tokens fall back to the model config`() = runTest {
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(model(config = Config(0.7, 2048, null, null)), null, messages = emptyList())
 			.toList()
 		
@@ -450,7 +474,7 @@ class ResilientChatTest {
 	fun `explicit temperature and max tokens override the model config`() = runTest {
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway)
+		ResilientChat(gateway, providerRepo)
 			.execute(
 				model(config = Config(0.7, 2048, null, null)),
 				null,
@@ -469,7 +493,7 @@ class ResilientChatTest {
 	fun `temperature and max tokens stay null without model config or explicit values`() = runTest {
 		val gateway = RecordingGateway { _, _ -> flow { emit(assembled("ok")) } }
 		
-		ResilientChat(gateway).execute(model(config = null), null, messages = emptyList()).toList()
+		ResilientChat(gateway, providerRepo).execute(model(config = null), null, messages = emptyList()).toList()
 		
 		val request = gateway.requests.single()
 		assertNull(request.temperature)

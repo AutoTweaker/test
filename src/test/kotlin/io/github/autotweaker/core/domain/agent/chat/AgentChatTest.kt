@@ -25,6 +25,7 @@ import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.message.ref
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.core.domain.agent.*
 import io.github.autotweaker.core.domain.chat.ResilientChat
 import io.github.autotweaker.core.test.TestServices
@@ -95,7 +96,7 @@ class AgentChatTest {
 	@Test
 	fun `collects assembled message with content and finish reason`() = runTest {
 		val agentId = UUID.randomUUID()
-		val chatResult = ChatResult.Assembled(
+		val chatResult = LlmResult.Assembled(
 			message = ChatMessage.Assistant("hello world"),
 		)
 		
@@ -105,7 +106,7 @@ class AgentChatTest {
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
-			emit(LlmResult(chatResult, model = UUID.randomUUID()))
+			emit(ChatResult(chatResult, model = UUID.randomUUID()))
 		}
 		
 		val (req, msg) = request(agentId, content = "hello")
@@ -121,12 +122,12 @@ class AgentChatTest {
 	@Test
 	fun `emits delta with reasoning when reasoning content arrives`() = runTest {
 		val agentId = UUID.randomUUID()
-		val chunkResult = ChatResult.Chunk(
+		val chunkResult = LlmResult.Chunk(
 			content = "answer",
 			reasoningContent = "let me think",
 			toolCalls = null,
 		)
-		val assembledResult = ChatResult.Assembled(
+		val assembledResult = LlmResult.Assembled(
 			message = ChatMessage.Assistant("answer", reasoningContent = "let me think"),
 		)
 		
@@ -136,8 +137,8 @@ class AgentChatTest {
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
-			emit(LlmResult(chunkResult, model = UUID.randomUUID()))
-			emit(LlmResult(assembledResult, model = UUID.randomUUID()))
+			emit(ChatResult(chunkResult, model = UUID.randomUUID()))
+			emit(ChatResult(assembledResult, model = UUID.randomUUID()))
 		}
 		
 		val (req, msg) = request(agentId, content = "question")
@@ -164,8 +165,8 @@ class AgentChatTest {
 			)
 		} returns flow {
 			emit(
-				LlmResult(
-					ChatResult.Chunk(
+				ChatResult(
+					LlmResult.Chunk(
 						content = "hello ",
 						reasoningContent = null,
 						toolCalls = null,
@@ -174,8 +175,8 @@ class AgentChatTest {
 				)
 			)
 			emit(
-				LlmResult(
-					ChatResult.Chunk(
+				ChatResult(
+					LlmResult.Chunk(
 						content = "world",
 						reasoningContent = null,
 						toolCalls = null,
@@ -184,8 +185,8 @@ class AgentChatTest {
 				)
 			)
 			emit(
-				LlmResult(
-					ChatResult.Assembled(
+				ChatResult(
+					LlmResult.Assembled(
 						message = ChatMessage.Assistant("hello world"),
 					),
 					UUID.randomUUID(),
@@ -209,7 +210,7 @@ class AgentChatTest {
 	@Test
 	fun `emits Failing for error message`() = runTest {
 		val agentId = UUID.randomUUID()
-		val errorChatResult = ChatResult.Failed("service down", 503)
+		val errorChatResult = LlmResult.Failed("service down", 503)
 		
 		val chat = mockk<ResilientChat>()
 		every {
@@ -217,7 +218,7 @@ class AgentChatTest {
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
-			emit(LlmResult(errorChatResult, model = UUID.randomUUID()))
+			emit(ChatResult(errorChatResult, model = UUID.randomUUID()))
 		}
 		
 		val (req, msg) = request(agentId, content = "help")
@@ -233,7 +234,7 @@ class AgentChatTest {
 	@Test
 	fun `assembled message carries usage`() = runTest {
 		val agentId = UUID.randomUUID()
-		val chatResult = ChatResult.Assembled(
+		val chatResult = LlmResult.Assembled(
 			message = ChatMessage.Assistant("ok"),
 			usage = Usage(100, 50, 50),
 		)
@@ -244,7 +245,7 @@ class AgentChatTest {
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
-			emit(LlmResult(chatResult, model = UUID.randomUUID()))
+			emit(ChatResult(chatResult, model = UUID.randomUUID()))
 		}
 		
 		val (req, msg) = request(agentId, content = "test")
@@ -258,7 +259,7 @@ class AgentChatTest {
 	@Test
 	fun `assembled message with reasoning content is included`() = runTest {
 		val agentId = UUID.randomUUID()
-		val chatResult = ChatResult.Assembled(
+		val chatResult = LlmResult.Assembled(
 			message = ChatMessage.Assistant(null, reasoningContent = "thinking..."),
 		)
 		
@@ -268,7 +269,7 @@ class AgentChatTest {
 				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			)
 		} returns flow {
-			emit(LlmResult(chatResult, model = UUID.randomUUID()))
+			emit(ChatResult(chatResult, model = UUID.randomUUID()))
 		}
 		
 		val (req, msg) = request(agentId, content = "question")
@@ -288,7 +289,7 @@ class AgentChatTest {
 				arguments = """{"file":"/tmp/test"}"""
 			)
 		)
-		val chatResult = ChatResult.Assembled(
+		val chatResult = LlmResult.Assembled(
 			message = ChatMessage.Assistant("done", toolCalls = toolCalls),
 		)
 		
@@ -299,15 +300,15 @@ class AgentChatTest {
 			)
 		} returns flow {
 			emit(
-				LlmResult(
-					ChatResult.Assembled(
+				ChatResult(
+					LlmResult.Assembled(
 						message = ChatMessage.Assistant(null),
 					),
 					UUID.randomUUID(),
 				)
 			)
 			emit(
-				LlmResult(
+				ChatResult(
 					chatResult,
 					UUID.randomUUID(),
 				)

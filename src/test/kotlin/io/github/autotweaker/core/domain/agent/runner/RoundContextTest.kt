@@ -22,10 +22,10 @@ import io.github.autotweaker.api.orNull
 import io.github.autotweaker.api.tool.Tool
 import io.github.autotweaker.api.types.agent.ToolCallStatus
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.toContentPart
 import io.github.autotweaker.api.types.message.AgentMessage
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.message.ref
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.RuntimeContext

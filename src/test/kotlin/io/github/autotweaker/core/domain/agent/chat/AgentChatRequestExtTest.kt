@@ -26,8 +26,10 @@ import io.github.autotweaker.api.types.llm.*
 import io.github.autotweaker.api.types.llm.ModelData.Config
 import io.github.autotweaker.api.types.llm.ModelData.ModelInfo
 import io.github.autotweaker.api.types.message.AgentMessage
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.api.types.message.ref
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.api.types.tool.ToolResultStatus
 import io.github.autotweaker.api.types.tool.UiBlock
 import io.github.autotweaker.core.domain.agent.AgentModel
@@ -122,7 +124,7 @@ class AgentChatRequestExtTest {
 	
 	private fun request(
 		context: RuntimeContext,
-		tools: List<ChatRequest.Tool>? = null,
+		tools: List<LlmRequest.Tool>? = null,
 	) = AgentChatRequest(agentModel, tools, context)
 	
 	@Test
@@ -158,7 +160,7 @@ class AgentChatRequestExtTest {
 	fun `tools parameter passed through`() = runTest {
 		val user = userMsg("hello")
 		val ctx = RuntimeContext(null, null, null, null, round(user))
-		val tool = ChatRequest.Tool("read", "read a file", Json.parseToJsonElement("{}"))
+		val tool = LlmRequest.Tool("read", "read a file", Json.parseToJsonElement("{}"))
 		val req = request(context = ctx, tools = listOf(tool))
 		
 		assertEquals(1, req.tools?.size)

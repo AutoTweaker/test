@@ -21,7 +21,7 @@ package io.github.autotweaker.core.domain.tool.impl.bash
 import io.github.autotweaker.api.generated.tool.args.BashArgs
 import io.github.autotweaker.api.store.JsonStore
 import io.github.autotweaker.api.tool.Tool
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.api.types.shell.ShellEvent
 import io.github.autotweaker.api.types.shell.ShellResult
 import io.github.autotweaker.api.types.tool.ToolMeta

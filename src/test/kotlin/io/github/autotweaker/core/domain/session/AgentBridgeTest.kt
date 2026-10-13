@@ -29,7 +29,7 @@ import io.github.autotweaker.api.types.agent.ModelConfig
 import io.github.autotweaker.api.types.llm.ChatMessage
 import io.github.autotweaker.api.types.llm.ChatResult
 import io.github.autotweaker.api.types.llm.LlmResult
-import io.github.autotweaker.api.types.llm.toContentPart
+import io.github.autotweaker.api.types.message.toContentPart
 import io.github.autotweaker.api.types.message.ContextInjection
 import io.github.autotweaker.api.types.message.MessageContent
 import io.github.autotweaker.core.domain.agent.AgentDeps
@@ -197,8 +197,8 @@ class AgentBridgeTest {
 			chat.execute(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
 		} returns flow {
 			emit(
-				LlmResult(
-					ChatResult.Assembled(
+				ChatResult(
+					LlmResult.Assembled(
 						message = ChatMessage.Assistant("answer"),
 					),
 					model = UUID.randomUUID(),

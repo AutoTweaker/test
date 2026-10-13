@@ -20,9 +20,9 @@ package io.github.autotweaker.core.infrastructure.llm.base.openai
 
 import io.github.autotweaker.api.types.Url.Companion.toUrl
 import io.github.autotweaker.api.types.llm.ChatMessage
-import io.github.autotweaker.api.types.llm.ChatRequest
-import io.github.autotweaker.api.types.llm.ChatResult
-import io.github.autotweaker.api.types.llm.ContentPart
+import io.github.autotweaker.api.types.llm.LlmRequest
+import io.github.autotweaker.api.types.llm.LlmResult
+import io.github.autotweaker.api.types.message.ContentPart
 import io.github.autotweaker.core.infrastructure.llm.openai.AbstractOpenAiClient
 import io.github.autotweaker.core.infrastructure.llm.provider.deepseek.DeepSeekClient
 import io.github.autotweaker.core.test.TestServices
@@ -75,7 +75,7 @@ class AbstractOpenAiClientChatTest {
 		putObjectMethod.invoke(unsafe, base, offset, httpClient)
 	}
 	
-	private fun userRequest() = ChatRequest(
+	private fun userRequest() = LlmRequest(
 		model = "deepseek-v4-pro",
 		instructions = null,
 		messages = listOf(ChatMessage.User(listOf(ContentPart.Text("hello")))),
@@ -104,7 +104,7 @@ class AbstractOpenAiClientChatTest {
 		val results = client.chat(userRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results[0])
+		val assembled = assertIs<LlmResult.Assembled>(results[0])
 		assertEquals("hello world", assembled.message.content)
 		assertEquals(30, assembled.usage?.totalTokens)
 	}
@@ -117,7 +117,7 @@ class AbstractOpenAiClientChatTest {
 		val results = client.chat(userRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		val failed = assertIs<ChatResult.Failed>(results[0])
+		val failed = assertIs<LlmResult.Failed>(results[0])
 		assertEquals(500, failed.statusCode)
 		assertTrue(failed.message!!.contains("LLM API Error"))
 	}
@@ -139,12 +139,12 @@ class AbstractOpenAiClientChatTest {
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(4, results.size)
-		val chunks = results.filterIsInstance<ChatResult.Chunk>()
+		val chunks = results.filterIsInstance<LlmResult.Chunk>()
 		assertEquals(3, chunks.size)
 		assertEquals("hello", chunks[0].content)
 		assertEquals(" world", chunks[1].content)
 		assertEquals("", chunks[2].content)
-		val assembled = assertIs<ChatResult.Assembled>(results.last())
+		val assembled = assertIs<LlmResult.Assembled>(results.last())
 		assertEquals("hello world", assembled.message.content)
 		assertEquals(30, assembled.usage?.totalTokens)
 	}
@@ -160,7 +160,7 @@ class AbstractOpenAiClientChatTest {
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(2, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results.last())
+		val assembled = assertIs<LlmResult.Assembled>(results.last())
 		val toolCalls = assembled.message.toolCalls
 		assertNotNull(toolCalls)
 		assertEquals(1, toolCalls.size)
@@ -176,7 +176,7 @@ class AbstractOpenAiClientChatTest {
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		val failed = assertIs<ChatResult.Failed>(results[0])
+		val failed = assertIs<LlmResult.Failed>(results[0])
 		assertTrue(failed.message!!.contains("502"))
 	}
 	
@@ -189,7 +189,7 @@ class AbstractOpenAiClientChatTest {
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		assertIs<ChatResult.Failed>(results[0])
+		assertIs<LlmResult.Failed>(results[0])
 	}
 	
 	@Test
@@ -203,7 +203,7 @@ class AbstractOpenAiClientChatTest {
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		val failed = assertIs<ChatResult.Failed>(results[0])
+		val failed = assertIs<LlmResult.Failed>(results[0])
 		assertTrue(failed.message!!.contains("connection refused"))
 	}
 	
@@ -218,7 +218,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(2, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results.last())
+		val assembled = assertIs<LlmResult.Assembled>(results.last())
 		assertEquals("ok", assembled.message.content)
 	}
 	
@@ -231,7 +231,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results[0])
+		val assembled = assertIs<LlmResult.Assembled>(results[0])
 		assertEquals("", assembled.message.content)
 	}
 	
@@ -244,7 +244,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		assertIs<ChatResult.Assembled>(results[0])
+		assertIs<LlmResult.Assembled>(results[0])
 	}
 	
 	@Test
@@ -256,7 +256,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		assertEquals(2, results.size)
-		val assembled = assertIs<ChatResult.Assembled>(results.last())
+		val assembled = assertIs<LlmResult.Assembled>(results.last())
 		assertEquals("partial", assembled.message.content)
 	}
 	
@@ -269,7 +269,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
-		val assembled = assertIs<ChatResult.Assembled>(results.last())
+		val assembled = assertIs<LlmResult.Assembled>(results.last())
 		val tc = assembled.message.toolCalls
 		assertNotNull(tc)
 		assertEquals("f1", tc[0].name)
@@ -285,7 +285,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		
 		val client = DeepSeekClient()
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
-		val assembled = assertIs<ChatResult.Assembled>(results.last())
+		val assembled = assertIs<LlmResult.Assembled>(results.last())
 		val tc = assembled.message.toolCalls
 		assertNotNull(tc)
 		assertEquals("tc1", tc[0].id)
@@ -300,7 +300,7 @@ data: {"id":"c1","created":1715678901,"model":"m","choices":[{"index":0,"delta":
 		val results = client.chat(streamRequest(), "test-key", "https://mock.test/v1".toUrl()).toList()
 		
 		assertEquals(1, results.size)
-		assertIs<ChatResult.Failed>(results[0])
+		assertIs<LlmResult.Failed>(results[0])
 	}
 	
 	// endregion
