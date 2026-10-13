@@ -5,7 +5,7 @@
 ## 环境
 
 - 工作目录就是 test 仓库根目录，你有它的完整 git 历史
-- core 仓库源码在 `.core/`，含完整 git 历史，禁止修改
+- core 仓库源码在 `.core/`，含完整 git 历史
 - core 的运行时产物已经导出好了（`.core/core/build/runtime` 与 `.core/cli-adapter/build/runtime`），跑测试直接引用，不要重新构建 core
 - `.autotweaker/` 目录已建好，issue 文件写在那里
 - git 身份已配置好（`user.name` / `user.email`），不要改动 git 配置
@@ -34,6 +34,7 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 ## 修测试的约束
 
 - 不要访问，更不要写入或更新 `.github/` 目录以及其中的任何文件
+- 可以出于调试需要临时修改 `.core/` 里的实现，但重跑全量测试之前必须还原（`git -C .core checkout -- .`）——否则你验证的是被改动过的 core，结论不作数。这些改动也出不去：你没有 core 的推送权限，`.core/` 也在 `.gitignore` 里
 - 优先做最小适配：更新期望值、适配新的 API 形态、调整构造参数
 - core 移除了对应的类、方法或功能时，删除测它的测试（测试方法或整个文件）是正确做法。删之前先在 `.core/` 里确认那东西确实不存在了，并在 commit message 里写明
 - 禁止加 `@Disabled`、把断言弱化成恒真、用 try-catch 吞掉异常——这些让测试"变绿"，不是让它"变对"。功能没了就删测试，功能还在就不该禁用
@@ -41,7 +42,7 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 
 ## 收尾（必须完成）
 
-1. **提交**：把改动 commit（`git add` + `git commit`，不要 push，不要动 `.core/`）。没有 commit 的改动会在 CI 结束时丢弃。
+1. **提交**：把改动 commit（`git add` + `git commit`，不要 push，不要提交 `.core/` 下的改动）。没有 commit 的改动会在 CI 结束时丢弃。
 
    commit message 用中文，说明适配了 core 的哪个改动。**不要用 `git commit -m "..."`**：消息里会带反引号、`$`、引号这类字符，塞进命令行会被 shell 先解析一遍。用带引号的 heredoc 从 stdin 读：
 
