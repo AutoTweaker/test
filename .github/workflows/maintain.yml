@@ -27,6 +27,7 @@ jobs:
       - name: Checkout test
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -135,6 +136,7 @@ jobs:
           remote="https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           if [ -z "$(git log origin/main..HEAD --oneline)" ]; then
             echo "工作区没有新提交，跳过推送"
+            echo "::warning::mode=${{ steps.mode.outputs.mode }}，但 agent 没有产出任何 commit"
             exit 0
           fi
           git pull --rebase --autostash "$remote" main
