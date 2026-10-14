@@ -155,7 +155,8 @@ class MessageQueueTest {
 		
 		val message = q.drainAll()
 		assertNotNull(message)
-		assertEquals(message.id, delivery.await()?.first)
+		q.completeAll(message)
+		assertEquals(message.id, delivery.await()?.id)
 	}
 	
 	@Test
@@ -196,7 +197,8 @@ class MessageQueueTest {
 		// 空白文本仍保留为 ContentPart.Text，消息不再被丢弃
 		val message = q.drainAll()
 		assertNotNull(message)
-		assertEquals(message.id, delivery.await()?.first)
+		q.completeAll(message)
+		assertEquals(message.id, delivery.await()?.id)
 	}
 	
 	@Test
@@ -208,7 +210,8 @@ class MessageQueueTest {
 		val message = q.drainAll()
 		assertNotNull(message)
 		assertEquals("a\nb\n", message.content.content?.merge())
-		deliveries.forEach { assertEquals(message.id, it.await()?.first) }
+		q.completeAll(message)
+		deliveries.forEach { assertEquals(message.id, it.await()?.id) }
 	}
 	
 	// endregion
