@@ -19,6 +19,20 @@
 - 环境变量 `GH_TOKEN` 已就绪，`gh` 会自动读取它，直接用即可；不要运行认证、登录或鉴权检查类命令（`gh auth login`、`gh auth status` 之类），也不要给命令手动附加 token 参数
 - 这个 token 是只读的：你没有写权限，不要尝试创建或修改任何 GitHub 资源
 
+## 先查 open issue
+
+在深入分析之前，先看 core 当前的 open issue 里有没有已经在说这次失败的：
+
+```bash
+gh issue list --repo AutoTweaker/core --state open --limit 50
+```
+
+自己在里面找有没有已经在说这次失败的，光看标题不够就翻正文。**这一步只查 open**——它回答的是"这次失败是不是一条已知、且还没修掉的 core bug"。
+
+- **全部失败都被现有 issue 覆盖，且都归属 core 的 bug** → 到此为止：不要重新分析，不要评论，不要写 issue 文件，也不要提交任何东西。在总结里说明对应的是哪条 issue
+- **只有一部分失败被覆盖** → 被覆盖的那些不用动，其余部分照常走下面的"判定"
+- **没查到** → 照常走下面的"判定"
+
 ## 判定
 
 从失败的测试出发，找到它测的那部分 core 代码，读懂，再下结论。**没有代码层面的证据，不要下 bug 结论。**
@@ -54,7 +68,7 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
    EOF
    ```
 
-2. **issue 操作**：只有判定出"core 的 bug 导致测试失败"时才做，可以与其他测试的修改同时进行。先查重：
+2. **issue 操作**：只有判定出"core 的 bug 导致测试失败"时才做，可以与其他测试的修改同时进行。这里的查重跟开头那次不是一回事，**要连 closed 一起看**：
 
    ```bash
    gh issue list --repo AutoTweaker/core --state all --limit 50
