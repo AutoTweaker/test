@@ -54,10 +54,11 @@ class TemporaryStorageImplTest {
 	}
 	
 	@Test
-	fun `save rejects empty content`() {
-		assertFailsWith<IllegalArgumentException> {
-			TemporaryStorageImpl.save("", container = true)
-		}
+	fun `save accepts empty content`() {
+		val (id, path) = TemporaryStorageImpl.save("", container = true)
+		
+		assertEquals("", path.readText())
+		assertEquals("", TemporaryStorageImpl.read(id, container = true))
 	}
 	
 	@Test
