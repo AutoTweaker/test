@@ -83,4 +83,31 @@ class TranslationManagerTest {
 		val status = manager.status.value
 		assertTrue(status == TranslationStatus.IDLE || status == TranslationStatus.TRANSLATING)
 	}
+	
+	@Test
+	fun `startTranslation returns false and resets status when no model configured`() {
+		assertFalse(manager.startTranslation())
+		assertEquals(TranslationStatus.IDLE, manager.status.value)
+	}
+	
+	@Test
+	fun `startTranslation returns false and resets status when target is already translated`() = runBlocking {
+		val engine = mockk<TranslationEngine>()
+		every { engine.isCompleted(any()) } returns true
+		val complete = TranslationManager(mockk<ModelResolver>(relaxed = true), engine)
+		complete.setModel(UUID.randomUUID())
+		
+		assertFalse(complete.startTranslation())
+		assertEquals(TranslationStatus.IDLE, complete.status.value)
+		complete.setModel(null)
+	}
+	
+	@Test
+	fun `startTranslation accepts configured model with pending translations`() = runBlocking {
+		val id = UUID.randomUUID()
+		manager.setModel(id)
+		
+		assertTrue(manager.startTranslation())
+		manager.shutdown()
+	}
 }
