@@ -1,16 +1,18 @@
 name: Maintain
 
 on:
-  schedule:
-    - cron: '17 3 * * 1,4'
   repository_dispatch:
-    types: [ core-push ]
+    types: [ core-push, test-fill ]
   workflow_dispatch:
     inputs:
       fill:
         description: '根据覆盖率补充测试'
         type: boolean
         default: false
+      target:
+        description: '填充目标，留空按覆盖率'
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -83,7 +85,7 @@ jobs:
           if [ "${{ steps.test.outcome }}" = "failure" ]; then
             mode=maintain
           elif [ "${{ steps.test.outcome }}" = "success" ]; then
-            if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.fill }}" = "true" ]; then
+            if [ "${{ github.event.action }}" = "test-fill" ] || [ "${{ inputs.fill }}" = "true" ]; then
               mode=fill
             fi
           fi
@@ -102,16 +104,29 @@ jobs:
       - name: Load prompt
         id: prompt
         if: steps.mode.outputs.mode != 'none'
+        env:
+          TARGET: ${{ github.event.client_payload.target || inputs.target }}
         run: |
           if [ "${{ steps.mode.outputs.mode }}" = "maintain" ]; then
             file=.github/workflows/maintain.prompt.md
           else
             file=.github/workflows/fill.prompt.md
+            if [ -n "$TARGET" ]; then
+              echo "指定目标：$TARGET"
+              frag=/tmp/fill-pick.md
+              printf '本次运行已指定目标：只处理 `%s`，不必自己挑包，也不必判断它值不值得测。\n' "$TARGET" > "$frag"
+            else
+              frag=.github/workflows/fill-pick.md
+            fi
           fi
           echo "加载 $file"
           {
             echo 'text<<PROMPT_EOF'
-            cat "$file"
+            if [ -n "$frag" ]; then
+              sed -e "/{{PICK}}/r $frag" -e "/{{PICK}}/d" "$file"
+            else
+              cat "$file"
+            fi
             echo 'PROMPT_EOF'
           } >> "$GITHUB_OUTPUT"
 
