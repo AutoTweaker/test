@@ -97,7 +97,11 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
 
    写成两个文件（都已在 .gitignore 中），不要作多余的探测，直接通过 write 工具创建：
 
-   - `.autotweaker/issue.md`：issue/comment 的正文内容。写清哪个测试失败、期望行为与实际行为、判断依据（core 的哪次提交、哪段代码）
+   - `.autotweaker/issue.md`：issue/comment 的正文，纯 markdown 原样写，不做任何转义。以描述问题为核心，不要写成分析报告：
+     - 现象：什么情况下会出什么错
+     - 期望行为与实际行为
+     - 位置：core 的哪段代码（文件 + 方法），能定位到引入它的提交就一并写明
+     - 不写：测试的路径/名字/代码、堆栈、排查过程、修复建议
    - `.autotweaker/issue.json`：元数据，二选一：
 
    ```json
@@ -107,6 +111,8 @@ git 历史只用来理解某段代码为什么长这样（`git -C .core log -p -
    ```json
    {"action":"comment","issue":123}
    ```
+
+   新建时 `title` 一句话说清哪个组件或能力出了什么问题，不要塞方法名、异常名和触发条件。
 
    没有判定出 core 的 bug 时，不要写这两个文件。
 
